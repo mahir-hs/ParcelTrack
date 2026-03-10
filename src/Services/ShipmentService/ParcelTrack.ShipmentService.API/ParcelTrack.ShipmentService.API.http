@@ -1,0 +1,6 @@
+@ParcelTrack.ShipmentService.API_HostAddress = http://localhost:5068
+
+GET {{ParcelTrack.ShipmentService.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
