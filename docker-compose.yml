@@ -1,0 +1,167 @@
+# ============================================================
+# ParcelTrack — Local Infrastructure
+# Services: Redis, Kafka (KRaft), Keycloak
+#
+# PostgreSQL is intentionally excluded — using native Windows
+# installation instead. Create databases manually in DBeaver:
+#   CREATE DATABASE parceltrack_shipment;
+#   CREATE DATABASE parceltrack_notification;
+#   CREATE DATABASE parceltrack_tracking;
+#   CREATE DATABASE parceltrack_keycloak;
+#
+# STARTUP PROFILES — only run what the current week needs:
+#   Week 3-4  (nothing needed — pure domain code)
+#   Week 4    (DB only):    no docker needed, use native postgres
+#   Week 6-8  (+ Kafka):    docker-compose --profile messaging up -d
+#   Week 9+   (full stack): docker-compose --profile messaging --profile auth up -d
+# ============================================================
+
+networks:
+  parceltrack-net:
+    driver: bridge
+
+volumes:
+  redis-data:
+
+services:
+
+  # ──────────────────────────────────────────
+  # Redis — Cache, idempotency, rate limiting
+  # Alpine image — tiny (~50MB actual usage)
+  # ──────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: parceltrack-redis
+    restart: unless-stopped
+    profiles: ["messaging"]
+    mem_limit: 128m
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 100mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - parceltrack-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # Kafka — Event streaming (KRaft mode)
+  # No Zookeeper — self-managed metadata via Raft.
+  #
+  # JVM heap capped at 256MB (default is 1GB)
+  #
+  # Listeners:
+  #   INTERNAL   (kafka:29092)    — container-to-container
+  #   EXTERNAL   (localhost:9092) — your .NET services on host
+  #   CONTROLLER (kafka:9093)     — KRaft internal only
+  # ──────────────────────────────────────────
+  # kafka:
+  #   image: confluentinc/cp-kafka:7.6.0
+  #   container_name: parceltrack-kafka
+  #   restart: unless-stopped
+  #   profiles: ["messaging"]
+  #   mem_limit: 512m
+  #   ports:
+  #     - "9092:9092"
+  #   environment:
+  #     KAFKA_NODE_ID: 1
+  #     KAFKA_PROCESS_ROLES: broker,controller
+  #     KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+  #     CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+
+  #     KAFKA_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://kafka:9093
+  #     KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+  #     KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+  #     KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  #     KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+  #     KAFKA_LOG_RETENTION_HOURS: 24
+
+  #     KAFKA_HEAP_OPTS: "-Xmx256m -Xms128m"
+  #   networks:
+  #     - parceltrack-net
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+  #     interval: 15s
+  #     timeout: 10s
+  #     retries: 10
+  #     start_period: 30s
+
+  # # ──────────────────────────────────────────
+  # # Kafka topic initialiser — one-shot, then exits.
+  # # Waits for Kafka to be healthy, creates 4 topics.
+  # # ──────────────────────────────────────────
+  # kafka-init:
+  #   image: confluentinc/cp-kafka:7.6.0
+  #   container_name: parceltrack-kafka-init
+  #   profiles: ["messaging"]
+  #   mem_limit: 256m
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   networks:
+  #     - parceltrack-net
+  #   entrypoint: ["/bin/sh", "-c"]
+  #   command: |
+  #     "
+  #     echo 'Creating Kafka topics...'
+  #     kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic shipment.created         --partitions 3 --replication-factor 1
+  #     kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic shipment.status.changed --partitions 3 --replication-factor 1
+  #     kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic notification.failed     --partitions 1 --replication-factor 1
+  #     kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic webhook.failed          --partitions 1 --replication-factor 1
+  #     echo 'Done. Topics:'
+  #     kafka-topics --bootstrap-server kafka:29092 --list
+  #     "
+  #   restart: on-failure
+
+  # ──────────────────────────────────────────
+  # Keycloak — Identity & Auth
+  # JVM heap capped at 512MB via JAVA_OPTS_APPEND.
+  # start-dev skips TLS + clustering — correct for local dev.
+  # Connects to native PostgreSQL on host machine.
+  #
+  # Admin console: http://localhost:8180
+  # Realm auto-imported from JSON on first start only.
+  # ──────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    container_name: parceltrack-keycloak
+    restart: unless-stopped
+    profiles: ["auth"]
+    mem_limit: 768m
+    command: start-dev --import-realm
+    environment:
+      # host.docker.internal lets the container reach your native
+      # PostgreSQL installation on the Windows host machine
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://host.docker.internal:5432/parceltrack_keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HTTP_PORT: 8080
+      JAVA_OPTS_APPEND: "-Xmx512m -Xms256m"
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./keycloak/parceltrack-realm.json:/opt/keycloak/data/import/parceltrack-realm.json:ro
+    networks:
+      - parceltrack-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
