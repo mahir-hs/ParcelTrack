@@ -1,6 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Mapster" Version="7.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\ParcelTrack.Shared.Contracts\ParcelTrack.Shared.Contracts.csproj" />
     <ProjectReference Include="..\ParcelTrack.ShipmentService.Domain\ParcelTrack.ShipmentService.Domain.csproj" />
   </ItemGroup>
 

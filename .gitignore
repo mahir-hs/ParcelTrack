@@ -416,3 +416,28 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# ============================================================
+# ParcelTrack — .gitignore additions for Week 2
+# Add these lines to your existing .gitignore at the repo root
+# ============================================================
+
+# Environment secrets — NEVER commit
+.env
+.env.local
+.env.*.local
+
+# Docker volumes (if ever mounted locally)
+postgres-data/
+redis-data/
+
+# Build outputs
+**/bin/
+**/obj/
+
+# Rider / VS / VS Code
+.idea/
+.vs/
+*.user
+*.suo
+
