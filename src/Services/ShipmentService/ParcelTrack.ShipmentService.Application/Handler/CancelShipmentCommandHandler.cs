@@ -1,4 +1,5 @@
-﻿using ParcelTrack.Shared.Contracts.Events;
+﻿using ParcelTrack.Shared.Contracts;
+using ParcelTrack.Shared.Contracts.Events;
 using ParcelTrack.ShipmentService.Application.Commands;
 using ParcelTrack.ShipmentService.Application.DTOs;
 using ParcelTrack.ShipmentService.Application.Interfaces;
@@ -48,7 +49,7 @@ public sealed class CancelShipmentCommandHandler(
                 shipment.UserId,
                 previousStatus.ToString(),
                 "Cancelled",
-                string.Empty,
+                null,
                 command.Reason,
                 DateTime.UtcNow),
             cancellationToken);

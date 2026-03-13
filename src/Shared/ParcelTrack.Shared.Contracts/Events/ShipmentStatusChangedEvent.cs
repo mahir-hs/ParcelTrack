@@ -12,6 +12,6 @@ public sealed record ShipmentStatusChangedEvent(
     Guid UserId,
     string PreviousStatus,
     string NewStatus,
-    string Location,
+    string? Location,
     string Description,
     DateTime OccurredAt);

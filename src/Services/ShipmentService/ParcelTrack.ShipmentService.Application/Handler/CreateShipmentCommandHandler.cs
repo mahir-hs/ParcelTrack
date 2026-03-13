@@ -1,4 +1,5 @@
-﻿using ParcelTrack.Shared.Contracts.Events;
+﻿using ParcelTrack.Shared.Contracts;
+using ParcelTrack.Shared.Contracts.Events;
 using ParcelTrack.ShipmentService.Application.Commands;
 using ParcelTrack.ShipmentService.Application.DTOs;
 using ParcelTrack.ShipmentService.Application.Interfaces;
