@@ -15,12 +15,14 @@ public sealed class CancelShipmentCommandHandlerTests
     private readonly Mock<IShipmentRepository> _repoMock;
     private readonly Mock<IEventProducer> _producerMock;
     private readonly CancelShipmentCommandHandler _handler;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public CancelShipmentCommandHandlerTests()
     {
         _repoMock = new Mock<IShipmentRepository>();
         _producerMock = new Mock<IEventProducer>();
-        _handler = new CancelShipmentCommandHandler(_repoMock.Object, _producerMock.Object);
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
+        _handler = new CancelShipmentCommandHandler(_repoMock.Object, _producerMock.Object, _unitOfWorkMock.Object);
     }
 
     [Fact]
@@ -82,7 +84,7 @@ public sealed class CancelShipmentCommandHandlerTests
     {
         // Arrange
         _repoMock
-            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Shipment?)null);
 
         // Act & Assert
@@ -105,6 +107,8 @@ public sealed class CancelShipmentCommandHandlerTests
         _producerMock.Verify(
             p => p.PublishAsync("shipment.status.changed", It.IsAny<object>(), It.IsAny<CancellationToken>()),
             Times.Once);
+
+         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -118,9 +122,7 @@ public sealed class CancelShipmentCommandHandlerTests
         await _handler.Handle(BuildCommand(shipment.Id), CancellationToken.None);
 
         // Assert
-        _repoMock.Verify(
-            r => r.UpdateAsync(It.IsAny<Shipment>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+        _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
@@ -128,16 +130,15 @@ public sealed class CancelShipmentCommandHandlerTests
     private void SetupMocks(Shipment shipment)
     {
         _repoMock
-            .Setup(r => r.GetByIdAsync(shipment.Id, shipment.TenantId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(shipment.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Shipment?)shipment);
-
-        _repoMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Shipment>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
         _producerMock
             .Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                 .ReturnsAsync(1);
     }
 
     private static CancelShipmentCommand BuildCommand(Guid shipmentId) => new()

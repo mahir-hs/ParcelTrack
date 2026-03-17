@@ -10,10 +10,12 @@ namespace ParcelTrack.ShipmentService.Application.Handler;
 
 public class UpdateShipmentStatusCommandHandler(
     IShipmentRepository repository,
-    IEventProducer eventProducer)
+    IEventProducer eventProducer,
+    IUnitOfWork unitOfWork)
 {
     private readonly IShipmentRepository _repository = repository;
     private readonly IEventProducer _eventProducer = eventProducer;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<ShipmentDto> Handle(
         UpdateShipmentStatusCommand command,
@@ -22,7 +24,6 @@ public class UpdateShipmentStatusCommandHandler(
         // 1. Load shipment — scoped to tenant for security
         var shipment = await _repository.GetByIdAsync(
             command.ShipmentId,
-            command.TenantId,
             cancellationToken)
             ?? throw new ShipmentNotFoundException(command.ShipmentId);
 
@@ -31,10 +32,7 @@ public class UpdateShipmentStatusCommandHandler(
         // 2. Delegate to domain — state machine + max attempt rule live here
         shipment.UpdateStatus(command.NewStatus, command.Description, command.Location);
 
-        // 3. Persist updated state
-        await _repository.UpdateAsync(shipment, cancellationToken);
-
-        // 4. Publish event — Notification + Webhook Dispatch services consume this
+        // 3. Publish event — Notification + Webhook Dispatch services consume this
         await _eventProducer.PublishAsync(
             Topics.ShipmentStatusChanged,
             new ShipmentStatusChangedEvent(
@@ -48,6 +46,8 @@ public class UpdateShipmentStatusCommandHandler(
                 command.Description,
                 DateTime.UtcNow),
             cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return shipment.ToDto();
     }

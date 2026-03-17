@@ -12,13 +12,15 @@ public sealed class CreateShipmentCommandHandlerTests
 {
     private readonly Mock<IShipmentRepository> _repoMock;
     private readonly Mock<IEventProducer> _producerMock;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly CreateShipmentCommandHandler _handler;
 
     public CreateShipmentCommandHandlerTests()
     {
         _repoMock = new Mock<IShipmentRepository>();
         _producerMock = new Mock<IEventProducer>();
-        _handler = new CreateShipmentCommandHandler(_repoMock.Object, _producerMock.Object);
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
+        _handler = new CreateShipmentCommandHandler(_repoMock.Object, _producerMock.Object, _unitOfWorkMock.Object);
     }
 
     [Fact]
@@ -54,16 +56,15 @@ public sealed class CreateShipmentCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidCommand_ReturnsEmptyEvents()
+    public async Task Handle_ValidCommand_ShouldReturnsEvents()
     {
-        // Arrange — freshly created shipment has no tracking events yet
         SetupMocks();
 
         // Act
         var result = await _handler.Handle(BuildCommand(), CancellationToken.None);
 
         // Assert
-        result.Events.Should().BeEmpty();
+        result.Events.Should().HaveCountGreaterThan(0);
     }
 
     [Fact]
@@ -94,6 +95,8 @@ public sealed class CreateShipmentCommandHandlerTests
         _producerMock.Verify(
             p => p.PublishAsync("shipment.created", It.IsAny<object>(), It.IsAny<CancellationToken>()),
             Times.Once);
+
+        _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
@@ -107,6 +110,10 @@ public sealed class CreateShipmentCommandHandlerTests
         _producerMock
             .Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        _unitOfWorkMock
+            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
     }
 
     private static CreateShipmentCommand BuildCommand() => new()
