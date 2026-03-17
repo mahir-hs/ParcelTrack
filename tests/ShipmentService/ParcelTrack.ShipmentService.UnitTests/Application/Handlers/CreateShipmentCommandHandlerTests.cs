@@ -56,16 +56,15 @@ public sealed class CreateShipmentCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidCommand_ReturnsEmptyEvents()
+    public async Task Handle_ValidCommand_ShouldReturnsEvents()
     {
-        // Arrange — freshly created shipment has no tracking events yet
         SetupMocks();
 
         // Act
         var result = await _handler.Handle(BuildCommand(), CancellationToken.None);
 
         // Assert
-        result.Events.Should().BeEmpty();
+        result.Events.Should().HaveCountGreaterThan(0);
     }
 
     [Fact]

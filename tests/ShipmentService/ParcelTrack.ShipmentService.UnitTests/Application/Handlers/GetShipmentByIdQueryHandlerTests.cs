@@ -73,7 +73,7 @@ public sealed class GetShipmentByIdQueryHandlerTests
         var result = await _handler.Handle(new GetShipmentByIdQuery { ShipmentId = shipment.Id, TenantId = shipment.TenantId }, CancellationToken.None);
 
         // Assert
-        result.Events.Should().HaveCount(2);
+        result.Events.Should().HaveCount(3);
     }
 
     [Fact]

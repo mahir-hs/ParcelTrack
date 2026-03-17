@@ -27,11 +27,6 @@ public sealed class CancelShipmentCommandHandler(
             cancellationToken)
             ?? throw new ShipmentNotFoundException(command.ShipmentId);
 
-        // 2. Ownership check — only the user who created it can cancel
-        if (shipment.UserId != command.RequestingUserId)
-            throw new UnauthorizedAccessException(
-                $"User '{command.RequestingUserId}' does not own shipment '{command.ShipmentId}'.");
-
         var previousStatus = shipment.Status;
 
         // 3. Cancel — domain enforces terminal state rule
