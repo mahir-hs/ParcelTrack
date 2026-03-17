@@ -16,7 +16,6 @@ public sealed class GetShipmentByIdQueryHandler(IShipmentRepository repository)
     {
         var shipment = await _repository.GetByIdAsync(
             query.ShipmentId,
-            query.TenantId,
             cancellationToken)
             ?? throw new ShipmentNotFoundException(query.ShipmentId);
 

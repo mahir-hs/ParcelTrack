@@ -11,10 +11,12 @@ namespace ParcelTrack.ShipmentService.Application.Handler;
 
 public sealed class CreateShipmentCommandHandler(
     IShipmentRepository repository,
-    IEventProducer eventProducer)
+    IEventProducer eventProducer,
+    IUnitOfWork unitOfWork)
 {
     private readonly IShipmentRepository _repository = repository;
     private readonly IEventProducer _eventProducer = eventProducer;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<ShipmentDto> Handle(
         CreateShipmentCommand command,
@@ -23,7 +25,6 @@ public sealed class CreateShipmentCommandHandler(
         // 1. Duplicate check — same tracking number within the same tenant
         var existing = await _repository.GetByTrackingNumberAsync(
             command.TrackingNumber,
-            command.TenantId,
             cancellationToken);
 
         if (existing is not null)
@@ -52,6 +53,8 @@ public sealed class CreateShipmentCommandHandler(
                 shipment.BuyerEmail,
                 shipment.CreatedAt),
             cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // 5. Map to DTO and return
         return shipment.ToDto();

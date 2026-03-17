@@ -10,14 +10,13 @@ namespace ParcelTrack.ShipmentService.Application.Interfaces;
 /// </summary>
 public interface IShipmentRepository
 {
-    Task<Shipment?> GetByIdAsync(Guid id, Guid tenantId, CancellationToken cancellationToken = default);
-    Task<Shipment?> GetByTrackingNumberAsync(string trackingNumber, Guid tenantId, CancellationToken cancellationToken = default);
-    Task<(IEnumerable<Shipment> Items, int TotalCount)> GetPagedAsync(
-        Guid tenantId,
+    Task<Shipment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Shipment?> GetByTrackingNumberAsync(string trackingNumber, CancellationToken cancellationToken = default);
+    Task<Shipment?> GetByTrackingNumberPublicAsync(string trackingNumber, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<Shipment> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
         ShipmentStatus? statusFilter,
         CancellationToken cancellationToken = default);
     Task AddAsync(Shipment shipment, CancellationToken cancellationToken = default);
-    Task UpdateAsync(Shipment shipment, CancellationToken cancellationToken = default);
 }

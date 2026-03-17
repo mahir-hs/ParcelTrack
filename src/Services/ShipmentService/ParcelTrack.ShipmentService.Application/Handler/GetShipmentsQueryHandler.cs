@@ -15,7 +15,6 @@ public sealed class GetShipmentsQueryHandler(IShipmentRepository repository)
         CancellationToken cancellationToken = default)
     {
         var (items, totalCount) = await _repository.GetPagedAsync(
-            query.TenantId,
             query.Page,
             query.PageSize,
             query.StatusFilter,

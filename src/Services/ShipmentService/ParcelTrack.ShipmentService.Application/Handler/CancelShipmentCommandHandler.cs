@@ -10,10 +10,12 @@ namespace ParcelTrack.ShipmentService.Application.Handler;
 
 public sealed class CancelShipmentCommandHandler(
     IShipmentRepository repository,
-    IEventProducer eventProducer)
+    IEventProducer eventProducer,
+    IUnitOfWork unitOfWork)
 {
     private readonly IShipmentRepository _repository = repository;
     private readonly IEventProducer _eventProducer = eventProducer;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<ShipmentDto> Handle(
         CancelShipmentCommand command,
@@ -22,7 +24,6 @@ public sealed class CancelShipmentCommandHandler(
         // 1. Load — tenant scoped
         var shipment = await _repository.GetByIdAsync(
             command.ShipmentId,
-            command.TenantId,
             cancellationToken)
             ?? throw new ShipmentNotFoundException(command.ShipmentId);
 
@@ -36,10 +37,7 @@ public sealed class CancelShipmentCommandHandler(
         // 3. Cancel — domain enforces terminal state rule
         shipment.Cancel(command.Reason);
 
-        // 4. Persist
-        await _repository.UpdateAsync(shipment, cancellationToken);
-
-        // 5. Publish so downstream services know it is cancelled
+        // 4. Publish so downstream services know it is cancelled
         await _eventProducer.PublishAsync(
             Topics.ShipmentStatusChanged,
             new ShipmentStatusChangedEvent(
@@ -53,6 +51,8 @@ public sealed class CancelShipmentCommandHandler(
                 command.Reason,
                 DateTime.UtcNow),
             cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return shipment.ToDto();
     }

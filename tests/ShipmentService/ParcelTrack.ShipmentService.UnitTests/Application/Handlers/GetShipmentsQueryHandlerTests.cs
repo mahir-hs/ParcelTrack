@@ -108,7 +108,6 @@ public sealed class GetShipmentsQueryHandlerTests
         // Assert — filter must be forwarded, not silently dropped
         _repoMock.Verify(
             r => r.GetPagedAsync(
-                _tenantId,
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 ShipmentStatus.InTransit,
@@ -128,7 +127,6 @@ public sealed class GetShipmentsQueryHandlerTests
         // Assert
         _repoMock.Verify(
             r => r.GetPagedAsync(
-                _tenantId,
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 null,
@@ -142,7 +140,6 @@ public sealed class GetShipmentsQueryHandlerTests
     {
         _repoMock
             .Setup(r => r.GetPagedAsync(
-                It.IsAny<Guid>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<ShipmentStatus?>(),
@@ -155,7 +152,6 @@ public sealed class GetShipmentsQueryHandlerTests
         int pageSize = 10,
         ShipmentStatus? statusFilter = null) => new()
         {
-            TenantId = _tenantId,
             Page = page,
             PageSize = pageSize,
             StatusFilter = statusFilter

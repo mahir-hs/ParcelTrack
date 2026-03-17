@@ -28,7 +28,7 @@ public sealed class GetShipmentByIdQueryHandlerTests
         var shipment = ShipmentFactory.Create(trackingNumber: "STD-GET-001");
 
         _repoMock
-            .Setup(r => r.GetByIdAsync(shipment.Id, shipment.TenantId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(shipment.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(shipment);
 
         // Act
@@ -49,7 +49,7 @@ public sealed class GetShipmentByIdQueryHandlerTests
         var shipment = ShipmentFactory.Create(tenantId: tenantId);
 
         _repoMock
-            .Setup(r => r.GetByIdAsync(shipment.Id, shipment.TenantId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(shipment.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(shipment);
 
         // Act
@@ -66,7 +66,7 @@ public sealed class GetShipmentByIdQueryHandlerTests
         var shipment = ShipmentFactory.WithStatus(ShipmentStatus.OutForDelivery);
 
         _repoMock
-            .Setup(r => r.GetByIdAsync(shipment.Id, shipment.TenantId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(shipment.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(shipment);
 
         // Act
@@ -83,7 +83,7 @@ public sealed class GetShipmentByIdQueryHandlerTests
         var shipment = ShipmentFactory.WithStatus(ShipmentStatus.OutForDelivery);
 
         _repoMock
-            .Setup(r => r.GetByIdAsync(shipment.Id, shipment.TenantId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(shipment.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(shipment);
 
         // Act
@@ -98,7 +98,7 @@ public sealed class GetShipmentByIdQueryHandlerTests
     {
         // Arrange
         _repoMock
-            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Shipment?)null);
 
         // Act & Assert

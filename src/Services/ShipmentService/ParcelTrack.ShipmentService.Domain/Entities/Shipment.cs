@@ -24,6 +24,7 @@ public sealed class Shipment
     public CarrierType CarrierType { get; private set; }
     public ShipmentStatus Status { get; private set; }
     public string? BuyerEmail { get; private set; }  // nullable — B2B tenants may omit
+    public string? DestinationCity { get; private set; }
     public int DeliveryAttempts { get; private set; }  // exposed for DTOs and business reporting
     public Guid UserId { get; private set; }
     public Guid TenantId { get; private set; }
@@ -42,7 +43,8 @@ public sealed class Shipment
         CarrierType carrierType,
         string? buyerEmail,
         Guid userId,
-        Guid tenantId)
+        Guid tenantId,
+        string? destinationCity = null)
     {
         var shipment = new Shipment
         {
@@ -51,6 +53,7 @@ public sealed class Shipment
             CarrierType = carrierType,
             Status = ShipmentStatus.Created,
             BuyerEmail = buyerEmail,
+            DestinationCity = destinationCity,
             DeliveryAttempts = 0,
             UserId = userId,
             TenantId = tenantId,
