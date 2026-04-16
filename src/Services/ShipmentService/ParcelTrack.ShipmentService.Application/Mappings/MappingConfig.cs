@@ -44,5 +44,15 @@ public static class MappingConfig
             .Map(dest => dest.Description, src => src.Description)
             .Map(dest => dest.Location, src => src.Location)
             .Map(dest => dest.OccurredAt, src => src.OccurredAt);
+
+        TypeAdapterConfig<Shipment, PublicTrackingDto>.NewConfig()
+            .Map(dest => dest.Carrier, src => src.CarrierType.ToString())
+            .Map(dest => dest.CurrentStatus, src => src.Status.ToString())
+            // Ensure events are sorted by newest first for the public view
+            .Map(dest => dest.Events, src => src.Events.OrderByDescending(e => e.OccurredAt));
+
+        TypeAdapterConfig<ShipmentEvent, PublicTrackingEventDto>.NewConfig()
+            .Map(dest => dest.Status, src => src.Status.ToString());
+
     }
 }

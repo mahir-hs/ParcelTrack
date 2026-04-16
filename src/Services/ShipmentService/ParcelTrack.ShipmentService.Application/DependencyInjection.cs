@@ -17,6 +17,7 @@ public static class DependencyInjection
         // Query handlers
         services.AddScoped<GetShipmentByIdQueryHandler>();
         services.AddScoped<GetShipmentsQueryHandler>();
+        services.AddScoped<GetShipmentByTrackingNumberQueryHandler>();
 
         return services;
     }

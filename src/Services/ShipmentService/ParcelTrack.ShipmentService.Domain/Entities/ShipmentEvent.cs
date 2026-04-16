@@ -16,7 +16,6 @@ public sealed class ShipmentEvent
 
     public ShipmentEvent(Guid shipmentId, ShipmentStatus status, string description, string location)
     {
-        Id = Guid.NewGuid();
         ShipmentId = shipmentId;
         Status = status;
         Description = description;

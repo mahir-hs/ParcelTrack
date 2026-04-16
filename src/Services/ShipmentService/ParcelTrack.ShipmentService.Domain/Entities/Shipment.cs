@@ -12,8 +12,8 @@ public sealed class Shipment
     {
         { ShipmentStatus.Created,        [ShipmentStatus.InTransit, ShipmentStatus.Cancelled] },
         { ShipmentStatus.InTransit,      [ShipmentStatus.OutForDelivery, ShipmentStatus.Failed, ShipmentStatus.Cancelled] },
-        { ShipmentStatus.OutForDelivery, [ShipmentStatus.Delivered, ShipmentStatus.Failed] },
-        { ShipmentStatus.Failed,         [ShipmentStatus.OutForDelivery] },   // retry allowed
+        { ShipmentStatus.OutForDelivery, [ShipmentStatus.Delivered, ShipmentStatus.Failed, ShipmentStatus.Cancelled] },
+        { ShipmentStatus.Failed,         [ShipmentStatus.OutForDelivery, ShipmentStatus.Cancelled] },   // retry allowed
         { ShipmentStatus.Delivered,      [] },                                // terminal
         { ShipmentStatus.Cancelled,      [] },                                // terminal
     };
@@ -48,7 +48,6 @@ public sealed class Shipment
     {
         var shipment = new Shipment
         {
-            Id = Guid.NewGuid(),
             TrackingNumber = trackingNumber,
             CarrierType = carrierType,
             Status = ShipmentStatus.Created,

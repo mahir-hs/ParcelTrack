@@ -2,7 +2,6 @@
 using ParcelTrack.ShipmentService.Application.Interfaces;
 using ParcelTrack.ShipmentService.Application.Mappings;
 using ParcelTrack.ShipmentService.Application.Queries;
-using ParcelTrack.ShipmentService.Domain.Exceptions;
 
 namespace ParcelTrack.ShipmentService.Application.Handler;
 
@@ -14,10 +13,9 @@ public sealed class GetShipmentByIdQueryHandler(IShipmentRepository repository)
         GetShipmentByIdQuery query,
         CancellationToken cancellationToken = default)
     {
-        var shipment = await _repository.GetByIdAsync(
+        var shipment = await _repository.GetByIdAsyncWithEvents(
             query.ShipmentId,
-            cancellationToken)
-            ?? throw new ShipmentNotFoundException(query.ShipmentId);
+            cancellationToken);
 
         return shipment.ToDto();
     }

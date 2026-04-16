@@ -13,7 +13,8 @@ public sealed class ShipmentEventConfiguration : IEntityTypeConfiguration<Shipme
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasColumnName("id");
+            .HasColumnName("id")
+            .ValueGeneratedOnAdd(); ;
 
         builder.Property(e => e.ShipmentId)
             .HasColumnName("shipment_id")
