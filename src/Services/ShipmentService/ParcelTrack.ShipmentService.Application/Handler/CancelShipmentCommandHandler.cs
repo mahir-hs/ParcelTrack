@@ -47,7 +47,7 @@ public sealed class CancelShipmentCommandHandler(
                 DateTime.UtcNow),
             cancellationToken);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(CancellationToken.None);
 
         return shipment.ToDto();
     }

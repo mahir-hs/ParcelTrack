@@ -15,7 +15,7 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ITenantContext, TenantContext>();
 
-        services.AddKeycloakAuthentication(configuration, environment);
+        //services.AddKeycloakAuthentication(configuration, environment);
         services.AddApiDocumentation();
 
         return services;

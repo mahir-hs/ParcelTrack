@@ -14,12 +14,23 @@ public sealed class ShipmentRepository : IShipmentRepository
         _context = context;
     }
 
-    public async Task<Shipment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Shipment?> GetByIdAsyncWithEvents(Guid id, CancellationToken cancellationToken = default)
     {
         // Include Events — callers always need the tracking history alongside the aggregate
         return await _context.Shipments
             .Include(s => s.Events)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        // Note: TenantId filter is applied automatically by the global query filter
+        // No need to add .Where(s => s.TenantId == ...) here
+    }
+
+    public async Task<Shipment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        // Include Events — callers always need the tracking history alongside the aggregate
+        var result = await _context.Shipments
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        Console.WriteLine(_context?.Entry(result).State);
+        return result;
         // Note: TenantId filter is applied automatically by the global query filter
         // No need to add .Where(s => s.TenantId == ...) here
     }
@@ -45,6 +56,7 @@ public sealed class ShipmentRepository : IShipmentRepository
             .IgnoreQueryFilters()              // Bypass tenant filter — this is the public endpoint
             .Include(s => s.Events.OrderBy(e => e.OccurredAt))
             .AsNoTracking()                    // Read-only — no change tracking needed
+            .AsSplitQuery()
             .FirstOrDefaultAsync(s => s.TrackingNumber == trackingNumber, cancellationToken);
     }
 
@@ -70,9 +82,11 @@ public sealed class ShipmentRepository : IShipmentRepository
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
+            .Include(s => s.Events)
             .OrderByDescending(s => s.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
         return (items, totalCount);

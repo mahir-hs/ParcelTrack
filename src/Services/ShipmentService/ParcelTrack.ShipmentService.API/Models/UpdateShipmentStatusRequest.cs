@@ -1,4 +1,6 @@
-﻿namespace ParcelTrack.ShipmentService.API.Models;
+﻿using ParcelTrack.ShipmentService.Domain.Enums;
+
+namespace ParcelTrack.ShipmentService.API.Models;
 
 /// <summary>
 /// What the caller sends for PUT /shipments/{id}/status.
@@ -6,7 +8,7 @@
 /// </summary>
 public sealed record UpdateShipmentStatusRequest
 {
-    public string NewStatus { get; init; } = string.Empty;
+    public ShipmentStatus NewStatus { get; init; }
     public string Description { get; init; } = string.Empty;
     public string? Location { get; init; }
 }

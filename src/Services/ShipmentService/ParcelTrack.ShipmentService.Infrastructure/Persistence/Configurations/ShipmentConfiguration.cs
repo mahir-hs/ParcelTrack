@@ -13,7 +13,8 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id)
-            .HasColumnName("id");
+            .HasColumnName("id")
+            .ValueGeneratedOnAdd(); ;
 
         builder.Property(s => s.TrackingNumber)
             .HasColumnName("tracking_number")
@@ -73,9 +74,11 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
             .HasMaxLength(100);
 
         // ShipmentEvents — cascade delete: deleting a shipment removes all its events
+        // Correct mapping using backing field
         builder.HasMany(s => s.Events)
-            .WithOne()
-            .HasForeignKey(e => e.ShipmentId)
-            .OnDelete(DeleteBehavior.Cascade);
+               .WithOne()
+               .HasForeignKey(e => e.ShipmentId)
+               .OnDelete(DeleteBehavior.Cascade);
+
     }
 }

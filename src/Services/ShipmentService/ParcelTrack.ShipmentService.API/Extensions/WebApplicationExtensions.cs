@@ -19,22 +19,10 @@ public static class WebApplicationExtensions
         if (app.Environment.IsDevelopment())
         {
             app.MapApiDocumentation();
-            await app.RunMigrationsAsync();
         }
 
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
-    }
-
-    /// <summary>
-    /// Applies any pending EF Core migrations on startup.
-    /// Dev convenience only — remove before deploying to AWS (CI/CD handles migrations there).
-    /// </summary>
-    private static async Task RunMigrationsAsync(this WebApplication app)
-    {
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ShipmentDbContext>();
-        //await db.Database.MigrateAsync();
     }
 }

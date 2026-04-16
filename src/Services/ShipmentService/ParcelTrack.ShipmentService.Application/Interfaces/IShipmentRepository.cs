@@ -11,6 +11,7 @@ namespace ParcelTrack.ShipmentService.Application.Interfaces;
 public interface IShipmentRepository
 {
     Task<Shipment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Shipment?> GetByIdAsyncWithEvents(Guid id, CancellationToken cancellationToken = default);
     Task<Shipment?> GetByTrackingNumberAsync(string trackingNumber, CancellationToken cancellationToken = default);
     Task<Shipment?> GetByTrackingNumberPublicAsync(string trackingNumber, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<Shipment> Items, int TotalCount)> GetPagedAsync(

@@ -27,11 +27,12 @@ public static class PersistenceExtensions
                         maxRetryDelay: TimeSpan.FromSeconds(5),
                         errorCodesToAdd: null);
                 });
+            options.UseSnakeCaseNamingConvention();
         });
 
         // IUnitOfWork resolves to the same scoped ShipmentDbContext instance
         // Handler + Repository + OutboxEventProducer all share one DbContext per request
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ShipmentDbContext>());
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
 
         return services;

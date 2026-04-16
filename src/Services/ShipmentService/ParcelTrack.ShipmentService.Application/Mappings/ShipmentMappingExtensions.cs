@@ -16,7 +16,7 @@ namespace ParcelTrack.ShipmentService.Application.Mappings;
 /// </summary>
 public static class ShipmentMappingExtensions
 {
-    public static ShipmentDto ToDto(this Shipment shipment)
+    public static ShipmentDto ToDto(this Shipment? shipment)
         => shipment.Adapt<ShipmentDto>();
 
     public static ShipmentSummaryDto ToSummaryDto(this Shipment shipment)

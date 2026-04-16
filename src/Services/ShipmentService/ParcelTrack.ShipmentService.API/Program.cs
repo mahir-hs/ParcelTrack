@@ -16,3 +16,5 @@ var app = builder.Build();
 await app.UseApiPipelineAsync();
 
 await app.RunAsync();
+
+public partial class Program { }
