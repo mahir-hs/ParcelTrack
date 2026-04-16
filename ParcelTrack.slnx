@@ -1,0 +1,41 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Gateway/">
+    <Project Path="src/Gateway/ParcelTrack.Gateway/ParcelTrack.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/NotificationService/">
+    <Project Path="src/Services/NotificationService/ParcelTrack.NotificationService.Application/ParcelTrack.NotificationService.Application.csproj" />
+    <Project Path="src/Services/NotificationService/ParcelTrack.NotificationService.Worker/ParcelTrack.NotificationService.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/ShipmentService/">
+    <Project Path="src/Services/ShipmentService/ParcelTrack.ShipmentService.API/ParcelTrack.ShipmentService.API.csproj" />
+    <Project Path="src/Services/ShipmentService/ParcelTrack.ShipmentService.Application/ParcelTrack.ShipmentService.Application.csproj" />
+    <Project Path="src/Services/ShipmentService/ParcelTrack.ShipmentService.Domain/ParcelTrack.ShipmentService.Domain.csproj" />
+    <Project Path="src/Services/ShipmentService/ParcelTrack.ShipmentService.Infrastructure/ParcelTrack.ShipmentService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/TrackingService/">
+    <Project Path="src/Services/TrackingService/ParcelTrack.TrackingService.Application/ParcelTrack.TrackingService.Application.csproj" />
+    <Project Path="src/Services/TrackingService/ParcelTrack.TrackingService.Domain/ParcelTrack.TrackingService.Domain.csproj" />
+    <Project Path="src/Services/TrackingService/ParcelTrack.TrackingService.Infrastructure/ParcelTrack.TrackingService.Infrastructure.csproj" />
+    <Project Path="src/Services/TrackingService/ParcelTrack.TrackingService.Worker/ParcelTrack.TrackingService.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/WebhookDispatchService/">
+    <Project Path="src/Services/WebhookDispatchService/ParcelTrack.WebhookDispatchService.Worker/ParcelTrack.WebhookDispatchService.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/ParcelTrack.Shared.Common/ParcelTrack.Shared.Common.csproj" />
+    <Project Path="src/Shared/ParcelTrack.Shared.Contracts/ParcelTrack.Shared.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/NotificationService/">
+    <Project Path="tests/NotificationService/ParcelTrack.NotificationService.UnitTests/ParcelTrack.NotificationService.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/ShipmentService/">
+    <Project Path="tests/ShipmentService/ParcelTrack.ShipmentService.IntegrationTests/ParcelTrack.ShipmentService.IntegrationTests.csproj" />
+    <Project Path="tests/ShipmentService/ParcelTrack.ShipmentService.UnitTests/ParcelTrack.ShipmentService.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/TrackingService/">
+    <Project Path="tests/TrackingService/ParcelTrack.TrackingService.UnitTests/ParcelTrack.TrackingService.UnitTests.csproj" />
+  </Folder>
+</Solution>

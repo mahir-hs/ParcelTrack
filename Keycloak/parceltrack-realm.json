@@ -1,0 +1,151 @@
+{
+  "realm": "parceltrack",
+  "displayName": "ParcelTrack",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+
+  "roles": {
+    "realm": [
+      { "name": "user",         "description": "Standard individual/B2C user" },
+      { "name": "business",     "description": "Business/B2B API consumer" },
+      { "name": "admin",        "description": "Platform administrator" },
+      { "name": "tenant-admin", "description": "Manages users within their own tenant" }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "parceltrack-api",
+      "name": "ParcelTrack API (Confidential)",
+      "description": "Used by the API Gateway to validate tokens via JWKS. Also used for service-to-service calls.",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "parceltrack-api-secret-dev",
+      "bearerOnly": false,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "redirectUris": ["http://localhost:*/*", "https://localhost:*/*"],
+      "webOrigins": ["*"],
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access"],
+      "protocolMappers": [
+        {
+          "name": "tenantId-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "tenantId",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "tenantId",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "tier-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "tier",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "tier",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "parceltrack-frontend",
+      "name": "ParcelTrack Frontend / Swagger",
+      "description": "Public client used by Swagger UI and any minimal frontend for human login flows.",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "bearerOnly": false,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:5000/*",
+        "http://localhost:5001/*",
+        "http://localhost:5050/*",
+        "http://localhost:8080/*"
+      ],
+      "webOrigins": ["*"],
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access"]
+    }
+  ],
+
+  "users": [
+    {
+      "username": "admin-user",
+      "email": "admin@parceltrack.dev",
+      "firstName": "Platform",
+      "lastName": "Admin",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "Admin@1234", "temporary": false }
+      ],
+      "realmRoles": ["admin"],
+      "attributes": {
+        "tenantId": ["00000000-0000-0000-0000-000000000001"],
+        "tier": ["admin"]
+      }
+    },
+    {
+      "username": "riya-test",
+      "email": "riya@test.dev",
+      "firstName": "Riya",
+      "lastName": "TestSeller",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "Riya@1234", "temporary": false }
+      ],
+      "realmRoles": ["user"],
+      "attributes": {
+        "tenantId": ["00000000-0000-0000-0000-000000000002"],
+        "tier": ["individual"]
+      }
+    },
+    {
+      "username": "chaldal-test",
+      "email": "api@chaldal.dev",
+      "firstName": "Chaldal",
+      "lastName": "TestBusiness",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "Chaldal@1234", "temporary": false }
+      ],
+      "realmRoles": ["business"],
+      "attributes": {
+        "tenantId": ["00000000-0000-0000-0000-000000000003"],
+        "tier": ["business"]
+      }
+    }
+  ]
+}
