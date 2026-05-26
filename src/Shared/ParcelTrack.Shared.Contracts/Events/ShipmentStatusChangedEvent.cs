@@ -10,6 +10,7 @@ public sealed record ShipmentStatusChangedEvent(
     string TrackingNumber,
     Guid TenantId,
     Guid UserId,
+    string? BuyerEmail,
     string PreviousStatus,
     string NewStatus,
     string? Location,
