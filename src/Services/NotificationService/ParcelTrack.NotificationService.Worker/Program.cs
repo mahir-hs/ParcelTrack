@@ -29,9 +29,9 @@ builder.Services.Configure<KafkaSettings>(
 builder.Services.Configure<SmtpSettings>(
     builder.Configuration.GetSection("Smtp"));
 
-builder.Services.AddScoped<INotificationSender, SmtpNotificationSender>();
-builder.Services.AddScoped<ShipmentCreatedHandler>();
-builder.Services.AddScoped<ShipmentStatusChangedHandler>();
+builder.Services.AddSingleton<INotificationSender, SmtpNotificationSender>();
+builder.Services.AddSingleton<ShipmentCreatedHandler>();
+builder.Services.AddSingleton<ShipmentStatusChangedHandler>();
 
 builder.Services.AddHostedService<Worker>();
 
