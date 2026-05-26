@@ -24,8 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Services\TrackingService\ParcelTrack.TrackingService.Application\ParcelTrack.TrackingService.Application.csproj" />
-    <ProjectReference Include="..\..\..\src\Services\TrackingService\ParcelTrack.TrackingService.Domain\ParcelTrack.TrackingService.Domain.csproj" />
+    <ProjectReference Include="..\..\..\src\Services\WebhookDispatchService\ParcelTrack.WebhookDispatchService.Worker\ParcelTrack.WebhookDispatchService.Worker.csproj" />
   </ItemGroup>
 
 </Project>
