@@ -38,4 +38,7 @@
   <Folder Name="/tests/TrackingService/">
     <Project Path="tests/TrackingService/ParcelTrack.TrackingService.UnitTests/ParcelTrack.TrackingService.UnitTests.csproj" />
   </Folder>
+  <Folder Name="/tests/WebhookDispatchService/">
+    <Project Path="tests/WebhookDispatchService/ParcelTrack.WebhookDispatchService.UnitTests/ParcelTrack.WebhookDispatchService.UnitTests.csproj" />
+  </Folder>
 </Solution>
