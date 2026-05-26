@@ -79,6 +79,7 @@ docker-compose --profile messaging --profile auth up -d
 CREATE DATABASE parceltrack_shipment;
 CREATE DATABASE parceltrack_notification;
 CREATE DATABASE parceltrack_tracking;
+CREATE DATABASE parceltrack_webhook;
 CREATE DATABASE parceltrack_keycloak;
 ```
 
