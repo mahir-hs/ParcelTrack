@@ -9,5 +9,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+    <PackageReference Include="Confluent.Kafka" Version="2.13.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ParcelTrack.TrackingService.Application\ParcelTrack.TrackingService.Application.csproj" />
+    <ProjectReference Include="..\ParcelTrack.TrackingService.Infrastructure\ParcelTrack.TrackingService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\ParcelTrack.Shared.Contracts\ParcelTrack.Shared.Contracts.csproj" />
   </ItemGroup>
 </Project>
