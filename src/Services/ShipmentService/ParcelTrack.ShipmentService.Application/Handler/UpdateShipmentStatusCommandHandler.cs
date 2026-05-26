@@ -40,6 +40,7 @@ public class UpdateShipmentStatusCommandHandler(
                 shipment.TrackingNumber,
                 shipment.TenantId,
                 shipment.UserId,
+                shipment.BuyerEmail,
                 previousStatus.ToString(),
                 command.NewStatus.ToString(),
                 command.Location,

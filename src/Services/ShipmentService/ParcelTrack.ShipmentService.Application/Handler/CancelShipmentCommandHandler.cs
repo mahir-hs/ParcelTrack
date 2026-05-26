@@ -40,6 +40,7 @@ public sealed class CancelShipmentCommandHandler(
                 shipment.TrackingNumber,
                 shipment.TenantId,
                 shipment.UserId,
+                shipment.BuyerEmail,
                 previousStatus.ToString(),
                 "Cancelled",
                 null,

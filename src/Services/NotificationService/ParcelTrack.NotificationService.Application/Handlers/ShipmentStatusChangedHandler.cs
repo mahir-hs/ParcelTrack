@@ -20,6 +20,14 @@ public sealed class ShipmentStatusChangedHandler(
 
     public async Task HandleAsync(ShipmentStatusChangedEvent @event, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(@event.BuyerEmail))
+        {
+            logger.LogInformation(
+                "Skipping notification for {TrackingNumber} — no buyer email",
+                @event.TrackingNumber);
+            return;
+        }
+
         if (!NotifiableStatuses.Contains(@event.NewStatus))
         {
             logger.LogDebug(
@@ -31,7 +39,7 @@ public sealed class ShipmentStatusChangedHandler(
         await sender.SendAsync(new NotificationDto(
             TrackingNumber: @event.TrackingNumber,
             NotificationType: "StatusChanged",
-            BuyerEmail: null,  // ShipmentStatusChangedEvent does not carry buyer email
+            BuyerEmail: @event.BuyerEmail,
             PreviousStatus: @event.PreviousStatus,
             NewStatus: @event.NewStatus),
             cancellationToken);
