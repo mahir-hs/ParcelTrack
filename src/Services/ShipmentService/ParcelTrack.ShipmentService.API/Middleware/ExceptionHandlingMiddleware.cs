@@ -46,6 +46,9 @@ public sealed class ExceptionHandlingMiddleware
             ShipmentNotFoundException e =>
                 (HttpStatusCode.NotFound, e.Message),
 
+            DuplicateTrackingNumberException e =>
+                (HttpStatusCode.Conflict, e.Message),
+
             InvalidShipmentStatusTransitionException e =>
                 (HttpStatusCode.UnprocessableEntity, e.Message),
 
