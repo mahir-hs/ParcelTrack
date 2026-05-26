@@ -1,9 +1,26 @@
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using ParcelTrack.TrackingService.Application.Handlers;
 using ParcelTrack.TrackingService.Infrastructure;
 using ParcelTrack.TrackingService.Worker;
 using ParcelTrack.TrackingService.Worker.Settings;
+using Serilog;
+using Serilog.Events;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddSerilog((_, config) => config
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("System", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService("parceltrack-tracking"))
+    .WithTracing(t => t
+        .AddHttpClientInstrumentation()
+        .AddConsoleExporter());
 
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
 
