@@ -1,7 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using ParcelTrack.TrackingService.Application.Handlers;
 using ParcelTrack.TrackingService.Infrastructure;
+using ParcelTrack.TrackingService.Infrastructure.Persistence;
 using ParcelTrack.TrackingService.Worker;
 using ParcelTrack.TrackingService.Worker.Settings;
 using Serilog;
@@ -32,4 +34,11 @@ builder.Services.AddScoped<ShipmentStatusChangedHandler>();
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
+
+using (var scope = host.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TrackingDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 host.Run();
