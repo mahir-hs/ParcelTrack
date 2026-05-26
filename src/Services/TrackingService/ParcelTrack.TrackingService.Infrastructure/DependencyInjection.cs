@@ -21,6 +21,9 @@ public static class DependencyInjection
 
         services.AddScoped<ITrackingRepository, TrackingRepository>();
 
+        services.AddHealthChecks()
+            .AddDbContextCheck<TrackingDbContext>("database");
+
         return services;
     }
 }
