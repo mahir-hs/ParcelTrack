@@ -47,8 +47,6 @@ public class UpdateShipmentStatusCommandHandler(
                 DateTime.UtcNow),
             cancellationToken);
 
-        Console.WriteLine($"Saving Shipment Id: {shipment.Id} | Status: {shipment.Status}");
-
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return shipment.ToDto();

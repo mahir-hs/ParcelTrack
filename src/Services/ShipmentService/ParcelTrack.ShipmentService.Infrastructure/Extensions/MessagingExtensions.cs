@@ -16,7 +16,7 @@ public static class MessagingExtensions
         // IKafkaProducer → KafkaProducer (real Kafka connection)
         // Singleton: one producer instance reused across all requests (Confluent.Kafka best practice)
         // Used only by OutboxProcessor — never injected into handlers
-        //services.AddSingleton<IKafkaProducer, KafkaProducer>();
+        services.AddSingleton<IKafkaProducer, KafkaProducer>();
 
         return services;
     }
