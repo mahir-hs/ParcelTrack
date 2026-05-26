@@ -13,6 +13,7 @@ public sealed class CreateShipmentCommandHandlerTests
     private readonly Mock<IShipmentRepository> _repoMock;
     private readonly Mock<IEventProducer> _producerMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+    private readonly Mock<IIdempotencyService> _idempotencyMock;
     private readonly CreateShipmentCommandHandler _handler;
 
     public CreateShipmentCommandHandlerTests()
@@ -20,7 +21,9 @@ public sealed class CreateShipmentCommandHandlerTests
         _repoMock = new Mock<IShipmentRepository>();
         _producerMock = new Mock<IEventProducer>();
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _handler = new CreateShipmentCommandHandler(_repoMock.Object, _producerMock.Object, _unitOfWorkMock.Object);
+        _idempotencyMock = new Mock<IIdempotencyService>();
+        _handler = new CreateShipmentCommandHandler(
+            _repoMock.Object, _producerMock.Object, _unitOfWorkMock.Object, _idempotencyMock.Object);
     }
 
     [Fact]

@@ -12,16 +12,27 @@ namespace ParcelTrack.ShipmentService.Application.Handler;
 public sealed class CreateShipmentCommandHandler(
     IShipmentRepository repository,
     IEventProducer eventProducer,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IIdempotencyService idempotency)
 {
     private readonly IShipmentRepository _repository = repository;
     private readonly IEventProducer _eventProducer = eventProducer;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IIdempotencyService _idempotency = idempotency;
 
     public async Task<ShipmentDto> Handle(
         CreateShipmentCommand command,
         CancellationToken cancellationToken = default)
     {
+        // 0. Idempotency — return cached result if this key was already processed
+        if (command.IdempotencyKey is not null)
+        {
+            var cached = await _idempotency.GetAsync<ShipmentDto>(
+                $"idempotency:create-shipment:{command.IdempotencyKey}", cancellationToken);
+            if (cached is not null)
+                return cached;
+        }
+
         // 1. Duplicate check — same tracking number within the same tenant
         var existing = await _repository.GetByTrackingNumberAsync(
             command.TrackingNumber,
@@ -57,7 +68,16 @@ public sealed class CreateShipmentCommandHandler(
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // 5. Map to DTO and return
-        return shipment.ToDto();
+        // 5. Map to DTO and cache for idempotency (24 h TTL)
+        var result = shipment.ToDto();
+
+        if (command.IdempotencyKey is not null)
+            await _idempotency.SetAsync(
+                $"idempotency:create-shipment:{command.IdempotencyKey}",
+                result,
+                TimeSpan.FromHours(24),
+                cancellationToken);
+
+        return result;
     }
 }

@@ -254,10 +254,14 @@ services:
     restart: unless-stopped
     profiles: ["app"]
     mem_limit: 256m
+    ports:
+      - "5070:8080"
     environment:
-      DOTNET_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__WebhookDb: "Host=host.docker.internal;Port=5432;Database=parceltrack_webhook;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Kafka__BootstrapServers: kafka:29092
+      Keycloak__Authority: http://keycloak:8080/realms/parceltrack
+      Keycloak__Audience: parceltrack-api
     depends_on:
       kafka:
         condition: service_healthy

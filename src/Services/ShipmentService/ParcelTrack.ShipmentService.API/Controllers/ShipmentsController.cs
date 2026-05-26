@@ -60,7 +60,8 @@ public class ShipmentsController : ControllerBase
             BuyerEmail = request.BuyerEmail,
             DestinationCity = request.DestinationCity,
             UserId = _tenantContext.UserId,
-            TenantId = _tenantContext.TenantId
+            TenantId = _tenantContext.TenantId,
+            IdempotencyKey = Request.Headers.TryGetValue("X-Idempotency-Key", out var key) ? key.ToString() : null
         };
 
         var result = await _createHandler.Handle(command, cancellationToken);

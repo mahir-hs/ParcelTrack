@@ -10,4 +10,5 @@ public sealed record CreateShipmentCommand
     public string?     DestinationCity { get; init; }
     public Guid        UserId          { get; init; }
     public Guid        TenantId        { get; init; }
+    public string?     IdempotencyKey  { get; init; }
 }

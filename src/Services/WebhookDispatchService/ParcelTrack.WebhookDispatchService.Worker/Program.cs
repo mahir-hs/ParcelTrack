@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -8,7 +9,7 @@ using ParcelTrack.WebhookDispatchService.Worker.Settings;
 using Serilog;
 using Serilog.Events;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSerilog((_, config) => config
     .MinimumLevel.Information()
@@ -20,8 +21,22 @@ builder.Services.AddSerilog((_, config) => config
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(r => r.AddService("parceltrack-webhook"))
     .WithTracing(t => t
+        .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddConsoleExporter());
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Keycloak:Authority"];
+        options.Audience = builder.Configuration["Keycloak:Audience"];
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ITenantContext, TenantContext>();
 
 builder.Services.Configure<KafkaSettings>(
     builder.Configuration.GetSection("Kafka"));
@@ -45,12 +60,17 @@ builder.Services.AddHttpClient("webhook", client =>
 
 builder.Services.AddHostedService<Worker>();
 
-var host = builder.Build();
+var app = builder.Build();
 
-using (var scope = host.Services.CreateScope())
+using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<WebhookDbContext>();
     await db.Database.MigrateAsync();
 }
 
-host.Run();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.MapHealthChecks("/health");
+
+await app.RunAsync();
