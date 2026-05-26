@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ParcelTrack.ShipmentService.Infrastructure.Interfaces;
 using ParcelTrack.ShipmentService.Infrastructure.Persistence;
+using ParcelTrack.ShipmentService.Infrastructure.Persistence.Outbox;
 
 namespace ParcelTrack.ShipmentService.Infrastructure.BackgroundServices;
 
@@ -79,6 +80,7 @@ public sealed class OutboxProcessor : BackgroundService
                 .FromSqlRaw($"""
                     SELECT * FROM outbox_messages
                     WHERE processed_at IS NULL
+                      AND attempt_count < {OutboxMessage.MaxAttempts}
                     ORDER BY created_at
                     LIMIT {BatchSize}
                     FOR UPDATE SKIP LOCKED
@@ -107,12 +109,16 @@ public sealed class OutboxProcessor : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    // Don't fail the entire batch — mark this message as failed and move on
-                    _logger.LogError(ex,
-                        "Failed to publish outbox message {MessageId} (type: {Type}, attempt: {Attempt})",
-                        message.Id, message.Type, message.AttemptCount + 1);
-
                     message.RecordFailure(ex.Message);
+
+                    if (message.IsDead)
+                        _logger.LogCritical(
+                            "Outbox message {MessageId} (type: {Type}) has reached {Max} failed attempts and will no longer be retried",
+                            message.Id, message.Type, OutboxMessage.MaxAttempts);
+                    else
+                        _logger.LogError(ex,
+                            "Failed to publish outbox message {MessageId} (type: {Type}, attempt: {Attempt}/{Max})",
+                            message.Id, message.Type, message.AttemptCount, OutboxMessage.MaxAttempts);
                 }
             }
 
