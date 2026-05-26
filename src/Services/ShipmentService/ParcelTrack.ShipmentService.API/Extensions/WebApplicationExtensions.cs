@@ -19,6 +19,11 @@ public static class WebApplicationExtensions
         if (app.Environment.IsDevelopment())
         {
             app.MapApiDocumentation();
+
+            // Auto-apply pending migrations on startup in dev — avoids manual dotnet ef database update
+            await using var scope = app.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<ShipmentDbContext>();
+            await db.Database.MigrateAsync();
         }
 
         app.UseAuthentication();
