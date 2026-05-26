@@ -58,6 +58,7 @@ public class ShipmentsController : ControllerBase
             TrackingNumber = request.TrackingNumber,
             CarrierType = carrierType,
             BuyerEmail = request.BuyerEmail,
+            DestinationCity = request.DestinationCity,
             UserId = _tenantContext.UserId,
             TenantId = _tenantContext.TenantId
         };
