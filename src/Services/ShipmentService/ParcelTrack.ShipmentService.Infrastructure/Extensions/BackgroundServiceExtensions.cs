@@ -7,7 +7,9 @@ public static class BackgroundServiceExtensions
 {
     public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
     {
-        //services.AddHostedService<OutboxProcessor>();
+        // Polls outbox_messages and publishes pending events to Kafka.
+        // Resilient: a broker outage only leaves messages pending — it never crashes.
+        services.AddHostedService<OutboxProcessor>();
 
         return services;
     }

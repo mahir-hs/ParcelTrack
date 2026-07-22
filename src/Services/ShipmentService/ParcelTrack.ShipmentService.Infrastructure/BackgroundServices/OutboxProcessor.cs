@@ -65,65 +65,74 @@ public sealed class OutboxProcessor : BackgroundService
         var dbContext = scope.ServiceProvider.GetRequiredService<ShipmentDbContext>();
         var kafkaProducer = scope.ServiceProvider.GetRequiredService<IKafkaProducer>();
 
-        // Transaction is required for FOR UPDATE SKIP LOCKED
-        // The lock is held until the transaction commits or rolls back
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        // The DbContext uses EnableRetryOnFailure, which installs an execution strategy that
+        // forbids user-initiated transactions. All transactional work must run INSIDE the
+        // strategy so transient failures (incl. the FOR UPDATE SKIP LOCKED query) are retried
+        // as a single unit.
+        var strategy = dbContext.Database.CreateExecutionStrategy();
 
-        try
+        await strategy.ExecuteAsync(async () =>
         {
-            // FOR UPDATE SKIP LOCKED:
-            // - FOR UPDATE: locks the selected rows against concurrent access
-            // - SKIP LOCKED: skips rows locked by other transactions (other API instances)
-            // Result: each instance processes a unique non-overlapping batch
-            var messages = await dbContext.OutboxMessages
-                .FromSqlRaw($"""
-                    SELECT * FROM outbox_messages
-                    WHERE processed_at IS NULL
-                    ORDER BY created_at
-                    LIMIT {BatchSize}
-                    FOR UPDATE SKIP LOCKED
-                    """)
-                .ToListAsync(cancellationToken);
+            // Transaction is required for FOR UPDATE SKIP LOCKED
+            // The lock is held until the transaction commits or rolls back
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            if (messages.Count == 0)
+            try
+            {
+                // FOR UPDATE SKIP LOCKED:
+                // - FOR UPDATE: locks the selected rows against concurrent access
+                // - SKIP LOCKED: skips rows locked by other transactions (other API instances)
+                // Result: each instance processes a unique non-overlapping batch
+                var messages = await dbContext.OutboxMessages
+                    .FromSqlRaw($"""
+                        SELECT * FROM outbox_messages
+                        WHERE processed_at IS NULL
+                        ORDER BY created_at
+                        LIMIT {BatchSize}
+                        FOR UPDATE SKIP LOCKED
+                        """)
+                    .ToListAsync(cancellationToken);
+
+                if (messages.Count == 0)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return;
+                }
+
+                _logger.LogInformation("Processing {Count} outbox messages", messages.Count);
+
+                foreach (var message in messages)
+                {
+                    try
+                    {
+                        await kafkaProducer.ProduceAsync(
+                            message.Topic,
+                            message.Type,
+                            message.Payload,
+                            cancellationToken);
+
+                        message.MarkProcessed();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Don't fail the entire batch — mark this message as failed and move on
+                        _logger.LogError(ex,
+                            "Failed to publish outbox message {MessageId} (type: {Type}, attempt: {Attempt})",
+                            message.Id, message.Type, message.AttemptCount + 1);
+
+                        message.RecordFailure(ex.Message);
+                    }
+                }
+
+                // Commit: saves processed_at timestamps + failure records, then releases locks
+                await dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (Exception)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                return;
+                throw;
             }
-
-            _logger.LogInformation("Processing {Count} outbox messages", messages.Count);
-
-            foreach (var message in messages)
-            {
-                try
-                {
-                    await kafkaProducer.ProduceAsync(
-                        message.Topic,
-                        message.Type,
-                        message.Payload,
-                        cancellationToken);
-
-                    message.MarkProcessed();
-                }
-                catch (Exception ex)
-                {
-                    // Don't fail the entire batch — mark this message as failed and move on
-                    _logger.LogError(ex,
-                        "Failed to publish outbox message {MessageId} (type: {Type}, attempt: {Attempt})",
-                        message.Id, message.Type, message.AttemptCount + 1);
-
-                    message.RecordFailure(ex.Message);
-                }
-            }
-
-            // Commit: saves processed_at timestamps + failure records, then releases locks
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch (Exception)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+        });
     }
 }

@@ -29,7 +29,6 @@ public sealed class ShipmentRepository : IShipmentRepository
         // Include Events — callers always need the tracking history alongside the aggregate
         var result = await _context.Shipments
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
-        Console.WriteLine(_context?.Entry(result).State);
         return result;
         // Note: TenantId filter is applied automatically by the global query filter
         // No need to add .Where(s => s.TenantId == ...) here

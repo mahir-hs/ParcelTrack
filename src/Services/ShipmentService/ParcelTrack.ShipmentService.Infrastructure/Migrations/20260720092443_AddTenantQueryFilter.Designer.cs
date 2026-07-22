@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ParcelTrack.ShipmentService.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ParcelTrack.ShipmentService.Infrastructure.Persistence;
 namespace ParcelTrack.ShipmentService.Infrastructure.Migrations
 {
     [DbContext(typeof(ShipmentDbContext))]
-    partial class ShipmentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720092443_AddTenantQueryFilter")]
+    partial class AddTenantQueryFilter
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -33,10 +36,6 @@ namespace ParcelTrack.ShipmentService.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("buyer_email");
-
-                    b.Property<string>("BuyerPhone")
-                        .HasColumnType("text")
-                        .HasColumnName("buyer_phone");
 
                     b.Property<string>("CarrierType")
                         .IsRequired()

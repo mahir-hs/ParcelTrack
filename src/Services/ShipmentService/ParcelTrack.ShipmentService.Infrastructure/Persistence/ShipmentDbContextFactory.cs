@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using EFCore.NamingConventions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using ParcelTrack.ShipmentService.Application.Interfaces;
 
@@ -19,6 +20,10 @@ public sealed class ShipmentDbContextFactory : IDesignTimeDbContextFactory<Shipm
         optionsBuilder.UseNpgsql(
             "Host=localhost;Port=5432;Database=parceltrack_shipment;Username=postgres;Password=admin",
             npgsql => npgsql.MigrationsAssembly(typeof(ShipmentDbContext).Assembly.FullName));
+
+        // Must match the runtime configuration in PersistenceExtensions — otherwise the
+        // generated migration snapshot diverges from the runtime model (PendingModelChanges).
+        optionsBuilder.UseSnakeCaseNamingConvention();
 
         return new ShipmentDbContext(optionsBuilder.Options, new DesignTimeTenantContext());
     }

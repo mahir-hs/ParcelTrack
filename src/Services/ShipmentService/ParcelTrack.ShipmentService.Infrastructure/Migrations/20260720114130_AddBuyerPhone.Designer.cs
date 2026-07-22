@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ParcelTrack.ShipmentService.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ParcelTrack.ShipmentService.Infrastructure.Persistence;
 namespace ParcelTrack.ShipmentService.Infrastructure.Migrations
 {
     [DbContext(typeof(ShipmentDbContext))]
-    partial class ShipmentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720114130_AddBuyerPhone")]
+    partial class AddBuyerPhone
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
