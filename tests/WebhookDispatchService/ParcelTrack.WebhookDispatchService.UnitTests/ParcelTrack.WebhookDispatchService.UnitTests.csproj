@@ -24,9 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Services\NotificationService\ParcelTrack.NotificationService.Application\ParcelTrack.NotificationService.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\Services\WebhookDispatchService\ParcelTrack.WebhookDispatchService.Worker\ParcelTrack.WebhookDispatchService.Worker.csproj" />
     <ProjectReference Include="..\..\..\src\Shared\ParcelTrack.Shared.Contracts\ParcelTrack.Shared.Contracts.csproj" />
-    <ProjectReference Include="..\..\..\src\Shared\ParcelTrack.Shared.Messaging\ParcelTrack.Shared.Messaging.csproj" />
   </ItemGroup>
 
 </Project>

@@ -14,4 +14,6 @@ public sealed record ShipmentStatusChangedEvent(
     string NewStatus,
     string? Location,
     string Description,
-    DateTime OccurredAt);
+    DateTime OccurredAt,
+    string? BuyerEmail = null,
+    string? BuyerPhone = null);

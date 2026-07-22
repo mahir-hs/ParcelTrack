@@ -33,7 +33,7 @@ public sealed class CancelShipmentCommandHandlerTests
         SetupMocks(shipment);
 
         // Act
-        var result = await _handler.Handle(BuildCommand(shipment.Id), CancellationToken.None);
+        var result = await _handler.Handle(BuildCommand(shipment.Id, shipment.UserId), CancellationToken.None);
 
         // Assert
         result.Status.Should().Be(ShipmentStatus.Cancelled);
@@ -47,7 +47,7 @@ public sealed class CancelShipmentCommandHandlerTests
         SetupMocks(shipment);
 
         // Act
-        var result = await _handler.Handle(BuildCommand(shipment.Id), CancellationToken.None);
+        var result = await _handler.Handle(BuildCommand(shipment.Id, shipment.UserId), CancellationToken.None);
 
         // Assert
         result.Status.Should().Be(ShipmentStatus.Cancelled);
@@ -62,7 +62,7 @@ public sealed class CancelShipmentCommandHandlerTests
 
         // Act & Assert
         await _handler
-            .Invoking(h => h.Handle(BuildCommand(shipment.Id), CancellationToken.None))
+            .Invoking(h => h.Handle(BuildCommand(shipment.Id, shipment.UserId), CancellationToken.None))
             .Should().ThrowAsync<ShipmentAlreadyTerminatedException>();
     }
 
@@ -75,7 +75,7 @@ public sealed class CancelShipmentCommandHandlerTests
 
         // Act & Assert
         await _handler
-            .Invoking(h => h.Handle(BuildCommand(shipment.Id), CancellationToken.None))
+            .Invoking(h => h.Handle(BuildCommand(shipment.Id, shipment.UserId), CancellationToken.None))
             .Should().ThrowAsync<ShipmentAlreadyTerminatedException>();
     }
 
@@ -101,7 +101,7 @@ public sealed class CancelShipmentCommandHandlerTests
         SetupMocks(shipment);
 
         // Act
-        await _handler.Handle(BuildCommand(shipment.Id), CancellationToken.None);
+        await _handler.Handle(BuildCommand(shipment.Id, shipment.UserId), CancellationToken.None);
 
         // Assert
         _producerMock.Verify(
@@ -119,7 +119,7 @@ public sealed class CancelShipmentCommandHandlerTests
         SetupMocks(shipment);
 
         // Act
-        await _handler.Handle(BuildCommand(shipment.Id), CancellationToken.None);
+        await _handler.Handle(BuildCommand(shipment.Id, shipment.UserId), CancellationToken.None);
 
         // Assert
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -141,9 +141,10 @@ public sealed class CancelShipmentCommandHandlerTests
                  .ReturnsAsync(1);
     }
 
-    private static CancelShipmentCommand BuildCommand(Guid shipmentId) => new()
+    private static CancelShipmentCommand BuildCommand(Guid shipmentId, Guid? requestingUserId = null) => new()
     {
         ShipmentId = shipmentId,
+        RequestingUserId = requestingUserId ?? Guid.NewGuid(),
         Reason = "Cancelled by seller"
     };
 }

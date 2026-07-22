@@ -11,4 +11,5 @@ public sealed record ShipmentCreatedEvent(
     Guid UserId,
     Guid TenantId,
     string? BuyerEmail,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? BuyerPhone = null);
