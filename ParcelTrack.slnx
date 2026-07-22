@@ -26,6 +26,7 @@
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/ParcelTrack.Shared.Common/ParcelTrack.Shared.Common.csproj" />
     <Project Path="src/Shared/ParcelTrack.Shared.Contracts/ParcelTrack.Shared.Contracts.csproj" />
+    <Project Path="src/Shared/ParcelTrack.Shared.Messaging/ParcelTrack.Shared.Messaging.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/NotificationService/">
@@ -37,5 +38,8 @@
   </Folder>
   <Folder Name="/tests/TrackingService/">
     <Project Path="tests/TrackingService/ParcelTrack.TrackingService.UnitTests/ParcelTrack.TrackingService.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/WebhookDispatchService/">
+    <Project Path="tests/WebhookDispatchService/ParcelTrack.WebhookDispatchService.UnitTests/ParcelTrack.WebhookDispatchService.UnitTests.csproj" />
   </Folder>
 </Solution>
