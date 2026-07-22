@@ -13,6 +13,30 @@ public static class WebApplicationExtensions
     /// </summary>
     public static async Task UseApiPipelineAsync(this WebApplication app)
     {
+        // Apply any pending EF migrations before serving traffic.
+        // Retries briefly so a slow-starting Postgres doesn't kill the API.
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ShipmentDbContext>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<ShipmentDbContext>>();
+
+            var attempts = 0;
+            while (attempts < 5)
+            {
+                try
+                {
+                    await db.Database.MigrateAsync();
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    attempts++;
+                    logger.LogWarning(ex, "Migration attempt {Attempt} failed; retrying...", attempts);
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
+            }
+        }
+
         // Must be first — wraps everything below
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -24,5 +48,10 @@ public static class WebApplicationExtensions
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        // Liveness probe used by the Gateway's active health check.
+        app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
+            .WithName("Health")
+            .WithTags("health");
     }
 }

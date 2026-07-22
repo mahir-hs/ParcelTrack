@@ -9,5 +9,6 @@ public sealed record CreateShipmentRequest
     public string TrackingNumber { get; init; } = string.Empty;
     public string CarrierType { get; init; } = string.Empty;
     public string? BuyerEmail { get; init; }
+    public string? BuyerPhone { get; init; }
     public string? DestinationCity { get; init; }
 }

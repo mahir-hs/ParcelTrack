@@ -8,7 +8,8 @@ namespace ParcelTrack.ShipmentService.API.Models;
 /// </summary>
 public sealed record UpdateShipmentStatusRequest
 {
-    public ShipmentStatus NewStatus { get; init; }
+    // String on the wire — parsed + validated in the controller (mirrors CreateShipmentRequest).
+    public string NewStatus { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public string? Location { get; init; }
 }
