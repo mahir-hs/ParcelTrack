@@ -21,5 +21,12 @@
   <ItemGroup>
     <ProjectReference Include="..\ParcelTrack.NotificationService.Application\ParcelTrack.NotificationService.Application.csproj" />
     <ProjectReference Include="..\..\..\Shared\ParcelTrack.Shared.Contracts\ParcelTrack.Shared.Contracts.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ParcelTrack.NotificationService.Application\ParcelTrack.NotificationService.Application.csproj" />
+    <ProjectReference Include="..\..\..\Shared\ParcelTrack.Shared.Messaging\ParcelTrack.Shared.Messaging.csproj" />
+  </ItemGroup>
+
 </Project>
