@@ -44,7 +44,9 @@ public class UpdateShipmentStatusCommandHandler(
                 command.NewStatus.ToString(),
                 command.Location,
                 command.Description,
-                DateTime.UtcNow),
+                DateTime.UtcNow,
+                shipment.BuyerEmail,
+                shipment.BuyerPhone),
             cancellationToken);
 
         Console.WriteLine($"Saving Shipment Id: {shipment.Id} | Status: {shipment.Status}");

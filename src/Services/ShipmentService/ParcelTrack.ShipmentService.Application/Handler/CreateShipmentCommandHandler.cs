@@ -36,7 +36,7 @@ public sealed class CreateShipmentCommandHandler(
             command.CarrierType,
             command.BuyerEmail,
             command.UserId,
-            command.TenantId);
+            command.TenantId, command.BuyerPhone);
 
         // 3. Persist
         await _repository.AddAsync(shipment, cancellationToken);
@@ -51,7 +51,8 @@ public sealed class CreateShipmentCommandHandler(
                 shipment.UserId,
                 shipment.TenantId,
                 shipment.BuyerEmail,
-                shipment.CreatedAt),
+                shipment.CreatedAt,
+                shipment.BuyerPhone),
             cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

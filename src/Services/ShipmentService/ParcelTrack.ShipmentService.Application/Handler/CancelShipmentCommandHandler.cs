@@ -27,6 +27,11 @@ public sealed class CancelShipmentCommandHandler(
             cancellationToken)
             ?? throw new ShipmentNotFoundException(command.ShipmentId);
 
+        // 2. Only the owning user may cancel
+        if (shipment.UserId != command.RequestingUserId)
+            throw new UnauthorizedAccessException(
+                $"User '{command.RequestingUserId}' is not authorized to cancel shipment '{command.ShipmentId}'.");
+
         var previousStatus = shipment.Status;
 
         // 3. Cancel — domain enforces terminal state rule
@@ -44,7 +49,9 @@ public sealed class CancelShipmentCommandHandler(
                 "Cancelled",
                 null,
                 command.Reason,
-                DateTime.UtcNow),
+                DateTime.UtcNow,
+                shipment.BuyerEmail,
+                shipment.BuyerPhone),
             cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(CancellationToken.None);
