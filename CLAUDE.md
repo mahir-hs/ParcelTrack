@@ -61,7 +61,7 @@ tests/
 | Cache | Redis 7 (Alpine, Docker) |
 | Auth | Keycloak 24 (JWT Bearer, `parceltrack` realm) — active on ShipmentService and WebhookDispatchService |
 | Mapping | Mapster (`MappingConfig.Configure()` called on startup) |
-| API docs | Scalar (`/scalar` endpoint) |
+| API docs | Scalar (served at `/`) |
 | Entity config | `IEntityTypeConfiguration<T>`, applied via `ApplyConfigurationsFromAssembly` |
 
 ## Local Infrastructure (Docker Compose)
@@ -106,7 +106,7 @@ dotnet run --project src/Services/ShipmentService/ParcelTrack.ShipmentService.AP
 
 - HTTP:  `http://localhost:5068`
 - HTTPS: `https://localhost:7177`
-- Scalar UI: `http://localhost:5068/scalar`
+- Scalar UI: `http://localhost:5068/`
 
 Connection string key: `ConnectionStrings:ShipmentDb` (set in `appsettings.Development.json`, not committed).
 

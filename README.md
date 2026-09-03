@@ -256,7 +256,7 @@ Only *changes* are published. A courier answers with the same status on nearly e
 | Gateway | YARP |
 | Mapping | Mapster |
 | Email | MailKit |
-| Docs | Scalar (`/scalar`) |
+| Docs | Scalar (served at `/`) |
 | Logging | Serilog (structured) |
 | Tracing | OpenTelemetry |
 | Tests | xUnit, NSubstitute, Testcontainers |
@@ -343,7 +343,7 @@ dotnet run --project src/Services/WebhookDispatchService/ParcelTrack.WebhookDisp
 |---|---|
 | Gateway | `http://localhost:8080` |
 | ShipmentService | `http://localhost:5068` |
-| API docs (Scalar) | `http://localhost:5068/scalar` |
+| API docs (Scalar) | `http://localhost:5068/` |
 | WebhookDispatchService | `http://localhost:5070` |
 | Health checks | `/health` on each |
 
