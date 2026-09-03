@@ -63,8 +63,8 @@ public sealed class CarrierWebhookServiceTests
         var outcome = await CreateService().IngestAsync(CarrierType.Pathao, "{}");
 
         outcome.Should().Be(WebhookIngestOutcome.Applied);
-        _publisher.Verify(p => p.PublishStatusChangedAsync(
-            It.IsAny<ShipmentStatusChangedEvent>(), It.IsAny<CancellationToken>()), Times.Once);
+        _publisher.Verify(p => p.PublishObservationAsync(
+            It.IsAny<CarrierStatusObservedEvent>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

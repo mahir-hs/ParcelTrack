@@ -34,8 +34,8 @@ public sealed class KafkaCarrierEventPublisher : ICarrierEventPublisher
         _logger = logger;
     }
 
-    public async Task PublishStatusChangedAsync(
-        ShipmentStatusChangedEvent @event,
+    public async Task PublishObservationAsync(
+        CarrierStatusObservedEvent @event,
         CancellationToken cancellationToken = default)
     {
         var message = new Message<string, string>
@@ -46,17 +46,17 @@ public sealed class KafkaCarrierEventPublisher : ICarrierEventPublisher
 
         try
         {
-            var result = await _producer.ProduceAsync(Topics.ShipmentStatusChanged, message, cancellationToken);
+            var result = await _producer.ProduceAsync(Topics.CarrierStatusObserved, message, cancellationToken);
 
             _logger.LogInformation(
                 "Published {Topic} for {TrackingNumber} to partition {Partition} at offset {Offset}",
-                Topics.ShipmentStatusChanged, @event.TrackingNumber,
+                Topics.CarrierStatusObserved, @event.TrackingNumber,
                 result.Partition.Value, result.Offset.Value);
         }
         catch (ProduceException<string, string> ex)
         {
             _logger.LogError(ex,
-                "Failed to publish status change for {TrackingNumber} — the next poll will retry",
+                "Failed to publish observation for {TrackingNumber} — the next poll will retry",
                 @event.TrackingNumber);
             throw;
         }

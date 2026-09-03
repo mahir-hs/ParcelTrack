@@ -73,8 +73,8 @@ public sealed class CarrierPollingServiceTests
         var published = await CreateService().PollAsync(batchSize: 50);
 
         published.Should().Be(1);
-        _publisher.Verify(p => p.PublishStatusChangedAsync(
-            It.IsAny<ShipmentStatusChangedEvent>(), It.IsAny<CancellationToken>()), Times.Once);
+        _publisher.Verify(p => p.PublishObservationAsync(
+            It.IsAny<CarrierStatusObservedEvent>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -102,22 +102,22 @@ public sealed class CarrierPollingServiceTests
         _adapter.Setup(a => a.GetStatusAsync("DA001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Observation(CarrierStatus.OutForDelivery));
 
-        ShipmentStatusChangedEvent? captured = null;
-        _publisher.Setup(p => p.PublishStatusChangedAsync(
-                It.IsAny<ShipmentStatusChangedEvent>(), It.IsAny<CancellationToken>()))
-            .Callback<ShipmentStatusChangedEvent, CancellationToken>((e, _) => captured = e)
+        CarrierStatusObservedEvent? captured = null;
+        _publisher.Setup(p => p.PublishObservationAsync(
+                It.IsAny<CarrierStatusObservedEvent>(), It.IsAny<CancellationToken>()))
+            .Callback<CarrierStatusObservedEvent, CancellationToken>((e, _) => captured = e)
             .Returns(Task.CompletedTask);
 
         await CreateService().PollAsync(batchSize: 50);
 
-        // BuyerEmail and TenantId must survive: the notification service needs one, the
-        // webhook service the other.
+        // Identity must survive the hop: ShipmentService needs TenantId to scope its query
+        // and ShipmentId to find the parcel.
         captured.Should().NotBeNull();
         captured!.ShipmentId.Should().Be(shipment.ShipmentId);
         captured.TenantId.Should().Be(shipment.TenantId);
-        captured.BuyerEmail.Should().Be("buyer@example.com");
-        captured.PreviousStatus.Should().Be(nameof(CarrierStatus.Created));
-        captured.NewStatus.Should().Be(nameof(CarrierStatus.OutForDelivery));
+        captured.UserId.Should().Be(shipment.UserId);
+        captured.ObservedStatus.Should().Be(nameof(CarrierStatus.OutForDelivery));
+        captured.Carrier.Should().Be(nameof(CarrierType.Pathao));
     }
 
     [Fact]

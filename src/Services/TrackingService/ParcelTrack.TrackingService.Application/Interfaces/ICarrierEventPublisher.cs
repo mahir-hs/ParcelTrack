@@ -7,11 +7,14 @@ namespace ParcelTrack.TrackingService.Application.Interfaces;
 ///
 /// TrackingService is normally a consumer; this is the one place it produces. A courier is
 /// the only source that knows a parcel actually moved, so an observation has to re-enter the
-/// event stream for the notification and webhook services to act on it.
+/// event stream.
+///
+/// What is published is an observation, not a decision — ShipmentService validates it against
+/// the shipment's state machine and republishes the authoritative status change from there.
 /// </summary>
 public interface ICarrierEventPublisher
 {
-    Task PublishStatusChangedAsync(
-        ShipmentStatusChangedEvent @event,
+    Task PublishObservationAsync(
+        CarrierStatusObservedEvent @event,
         CancellationToken cancellationToken = default);
 }

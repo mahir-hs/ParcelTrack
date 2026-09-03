@@ -40,8 +40,8 @@ public sealed class CarrierObservationApplier(
             return false;
         }
 
-        await publisher.PublishStatusChangedAsync(
-            BuildEvent(shipment, observation, previousStatus),
+        await publisher.PublishObservationAsync(
+            BuildEvent(shipment, observation),
             cancellationToken);
 
         logger.LogInformation(
@@ -51,19 +51,18 @@ public sealed class CarrierObservationApplier(
         return true;
     }
 
-    private static ShipmentStatusChangedEvent BuildEvent(
+    private static CarrierStatusObservedEvent BuildEvent(
         TrackedShipment shipment,
-        CarrierTrackingResult observation,
-        CarrierStatus previousStatus) =>
+        CarrierTrackingResult observation) =>
         new(
             shipment.ShipmentId,
             shipment.TrackingNumber,
             shipment.TenantId,
             shipment.UserId,
-            shipment.BuyerEmail,
-            previousStatus.ToString(),
+            observation.Carrier.ToString(),
             observation.Status.ToString(),
-            observation.Location,
+            observation.RawStatus,
             observation.Description,
+            observation.Location,
             observation.OccurredAt);
 }

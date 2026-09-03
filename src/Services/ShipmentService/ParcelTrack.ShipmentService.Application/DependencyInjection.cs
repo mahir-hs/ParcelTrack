@@ -14,6 +14,9 @@ public static class DependencyInjection
         services.AddScoped<UpdateShipmentStatusCommandHandler>();
         services.AddScoped<CancelShipmentCommandHandler>();
 
+        // Applies courier observations through the same state machine as API calls
+        services.AddScoped<ApplyCarrierObservationHandler>();
+
         // Query handlers
         services.AddScoped<GetShipmentByIdQueryHandler>();
         services.AddScoped<GetShipmentsQueryHandler>();

@@ -84,7 +84,8 @@ flowchart TB
     KAFKA --> WHK
     TRK --> PG2
     TRK <-->|"poll every 30s<br/>+ webhook push"| COURIER
-    TRK -.->|"publishes observed<br/>status changes"| KAFKA
+    TRK -.->|"carrier.status.observed"| KAFKA
+    KAFKA -.->|"validated by<br/>state machine"| API
     WHK --> PG3
     NOT --> SMTP
     WHK --> TENANT
@@ -210,6 +211,7 @@ stateDiagram-v2
 |---|---|---|---|
 | `shipment.created` | 3 | ShipmentService | Tracking |
 | `shipment.status.changed` | 3 | ShipmentService | Tracking, Notification, Webhook |
+| `carrier.status.observed` | 3 | TrackingService | ShipmentService |
 | `notification.failed` | 1 | Notification | *(dead letter)* |
 | `webhook.failed` | 1 | Webhook | *(dead letter)* |
 
@@ -462,7 +464,7 @@ if (!CryptographicOperations.FixedTimeEquals(
 ## Testing
 
 ```powershell
-# Unit tests — 230 across four projects
+# Unit tests — 247 across four projects
 dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.UnitTests
 dotnet test tests/NotificationService/ParcelTrack.NotificationService.UnitTests
 dotnet test tests/TrackingService/ParcelTrack.TrackingService.UnitTests
@@ -474,7 +476,7 @@ dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.IntegrationTests
 
 | Suite | Tests | Covers |
 |---|---|---|
-| ShipmentService.UnitTests | 69 | Domain state machine, delivery caps, all 5 handlers |
+| ShipmentService.UnitTests | 86 | Domain state machine, delivery caps, all handlers, carrier observation validation |
 | WebhookDispatchService.UnitTests | 35 | Signing, retry/backoff, subscription rules |
 | NotificationService.UnitTests | 17 | Both event handlers, templating |
 | TrackingService.UnitTests | 109 | Records, handlers, Pathao adapter/token/status mapping, polling + webhook ingest |
@@ -529,11 +531,36 @@ Dependencies point inward only: `Domain ← Application ← Infrastructure ← A
 
 ---
 
-## Known gap
+## Observations vs. decisions
 
-The polling worker publishes `shipment.status.changed` when a courier reports movement, which drives notifications, webhooks, and the tracking log. **It does not yet update the shipment row in ShipmentService.** A parcel Pathao has marked delivered will show as delivered in `GET /v1/track/{n}` and trigger the buyer's email, while `GET /v1/shipments/{id}` still shows the older status.
+Two event types that look similar and are deliberately not:
 
-Closing it properly means ShipmentService consuming carrier observations and applying them through its own state machine — which needs `ITenantContext` to work outside an HTTP request, since it currently resolves the tenant from JWT claims. That refactor is deliberately not bundled into this change.
+| | `carrier.status.observed` | `shipment.status.changed` |
+|---|---|---|
+| Meaning | A courier *claims* something happened | ParcelTrack *decided* something is true |
+| Published by | TrackingService (polling or webhook) | ShipmentService, after validation |
+| Trustworthy? | No — may be impossible, stale, or repeated | Yes — passed the state machine |
+| Consumed by | ShipmentService | Tracking log, notifications, webhooks |
+
+A courier observation is not allowed to change a shipment directly. It goes through the same `UpdateShipmentStatusCommandHandler` an API call would, so the state machine, the delivery-attempt cap, and the outbox all apply — a courier claiming a brand-new parcel is `Delivered` is rejected exactly as a client would be.
+
+Keeping the two apart is also what prevents a loop: if the poller published `shipment.status.changed` directly, ShipmentService would apply it and publish the same event again, forever.
+
+```mermaid
+flowchart LR
+    P["Pathao"] -->|"poll / webhook"| T["TrackingService"]
+    T -->|"<b>carrier.status.observed</b><br/><i>an observation</i>"| S["ShipmentService"]
+    S --> SM{"state machine<br/>valid transition?"}
+    SM -->|no| X["rejected · logged<br/><i>consumer stays alive</i>"]
+    SM -->|yes| DB[("shipment updated")]
+    DB -->|"<b>shipment.status.changed</b><br/><i>a decision</i>"| F["tracking log<br/>buyer email<br/>tenant webhooks"]
+
+    style S fill:#2563eb,color:#fff
+    style SM fill:#7c3aed,color:#fff
+    style P fill:#ea580c,color:#fff
+```
+
+Rejections are logged, never thrown. A Kafka consumer that dies on a message it can never process retries it forever and blocks the partition behind it — an impossible transition is bad data, not a transient fault.
 
 ---
 
@@ -543,7 +570,7 @@ Closing it properly means ShipmentService consuming carrier observations and app
 - [ ] Notification history persistence
 - [x] Pathao carrier adapter — OAuth2, normalised status mapping, Polly retry/circuit-breaker/timeout
 - [x] Carrier polling worker + webhook receive endpoints
-- [ ] Propagate courier observations back to ShipmentService (see below)
+- [x] Propagate courier observations back to ShipmentService, validated through the state machine
 - [ ] Steadfast and Redx adapters (need merchant credentials)
 - [ ] WebSocket/SignalR push for live buyer tracking
 - [ ] Per-tenant rate limit tiers

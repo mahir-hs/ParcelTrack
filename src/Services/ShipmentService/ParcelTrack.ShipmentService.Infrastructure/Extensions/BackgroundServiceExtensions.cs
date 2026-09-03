@@ -8,6 +8,7 @@ public static class BackgroundServiceExtensions
     public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
     {
         services.AddHostedService<OutboxProcessor>();
+        services.AddHostedService<CarrierObservationConsumer>();
 
         return services;
     }

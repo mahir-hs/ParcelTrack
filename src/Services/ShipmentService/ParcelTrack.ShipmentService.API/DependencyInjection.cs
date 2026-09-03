@@ -13,7 +13,11 @@ public static class DependencyInjection
     {
         services.AddControllers();
         services.AddHttpContextAccessor();
-        services.AddScoped<ITenantContext, TenantContext>();
+        // One scoped instance behind both interfaces: a background consumer sets the tenant
+        // and the handlers in that same scope read it back.
+        services.AddScoped<TenantContext>();
+        services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
+        services.AddScoped<ITenantContextSetter>(sp => sp.GetRequiredService<TenantContext>());
 
         services.AddKeycloakAuthentication(configuration, environment);
         services.AddApiDocumentation();
