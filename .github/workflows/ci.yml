@@ -1,0 +1,170 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feat/**']
+  pull_request:
+    branches: [main, develop]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Job 1 — Build the solution and run all unit tests
+  # ──────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Build & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore ParcelTrack.slnx
+
+      - name: Build
+        run: dotnet build ParcelTrack.slnx --no-restore -c Release
+
+      - name: Test — ShipmentService
+        run: |
+          dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.UnitTests \
+            --no-build -c Release \
+            --logger "trx;LogFileName=shipment-unit.trx" \
+            --results-directory ./test-results
+
+      - name: Test — NotificationService
+        run: |
+          dotnet test tests/NotificationService/ParcelTrack.NotificationService.UnitTests \
+            --no-build -c Release \
+            --logger "trx;LogFileName=notification-unit.trx" \
+            --results-directory ./test-results
+
+      - name: Test — TrackingService
+        run: |
+          dotnet test tests/TrackingService/ParcelTrack.TrackingService.UnitTests \
+            --no-build -c Release \
+            --logger "trx;LogFileName=tracking-unit.trx" \
+            --results-directory ./test-results
+
+      - name: Test — WebhookDispatchService
+        run: |
+          dotnet test tests/WebhookDispatchService/ParcelTrack.WebhookDispatchService.UnitTests \
+            --no-build -c Release \
+            --logger "trx;LogFileName=webhook-unit.trx" \
+            --results-directory ./test-results
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: ./test-results/*.trx
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 2 — ShipmentService integration tests (Testcontainers)
+  # Spins up a real PostgreSQL container via Testcontainers.
+  # Runs after unit tests pass.
+  # ──────────────────────────────────────────────────────────────
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore ParcelTrack.slnx
+
+      - name: Test — ShipmentService integration
+        run: |
+          dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.IntegrationTests \
+            -c Release \
+            --logger "trx;LogFileName=shipment-integration.trx" \
+            --results-directory ./test-results
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: ./test-results/*.trx
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 3 — Build all Docker images to verify Dockerfiles are valid
+  # No push — registry push to be added when deployment is configured.
+  # Runs after unit tests pass, in parallel with integration tests.
+  # ──────────────────────────────────────────────────────────────
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build — Gateway
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Gateway/ParcelTrack.Gateway/Dockerfile
+          push: false
+          tags: parceltrack-gateway:ci
+          cache-from: type=gha,scope=gateway
+          cache-to: type=gha,scope=gateway,mode=max
+
+      - name: Build — ShipmentService
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Services/ShipmentService/ParcelTrack.ShipmentService.API/Dockerfile
+          push: false
+          tags: parceltrack-shipment:ci
+          cache-from: type=gha,scope=shipment
+          cache-to: type=gha,scope=shipment,mode=max
+
+      - name: Build — NotificationService
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Services/NotificationService/ParcelTrack.NotificationService.Worker/Dockerfile
+          push: false
+          tags: parceltrack-notification:ci
+          cache-from: type=gha,scope=notification
+          cache-to: type=gha,scope=notification,mode=max
+
+      - name: Build — TrackingService
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Services/TrackingService/ParcelTrack.TrackingService.Worker/Dockerfile
+          push: false
+          tags: parceltrack-tracking:ci
+          cache-from: type=gha,scope=tracking
+          cache-to: type=gha,scope=tracking,mode=max
+
+      - name: Build — WebhookDispatchService
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Services/WebhookDispatchService/ParcelTrack.WebhookDispatchService.Worker/Dockerfile
+          push: false
+          tags: parceltrack-webhook:ci
+          cache-from: type=gha,scope=webhook
+          cache-to: type=gha,scope=webhook,mode=max
