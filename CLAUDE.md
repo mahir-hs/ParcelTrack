@@ -25,7 +25,7 @@ src/
       ParcelTrack.TrackingService.Infrastructure/
       ParcelTrack.TrackingService.Worker/
     WebhookDispatchService/
-      ParcelTrack.WebhookDispatchService.Worker/
+      ParcelTrack.WebhookDispatchService.Worker/   # Single project: Domain + Infrastructure + Controllers + Worker
   Shared/
     ParcelTrack.Shared.Common/
     ParcelTrack.Shared.Contracts/           # Shared event contracts (cross-service)
@@ -37,14 +37,16 @@ tests/
     ParcelTrack.NotificationService.UnitTests/
   TrackingService/
     ParcelTrack.TrackingService.UnitTests/
+  WebhookDispatchService/
+    ParcelTrack.WebhookDispatchService.UnitTests/
 ```
 
 ## Architecture Patterns
 
 - **Clean Architecture**: Domain → Application → Infrastructure → API. Dependencies only point inward.
 - **CQRS (no MediatR)**: Commands and Queries in `Application/Commands/` and `Application/Queries/`. Handlers in `Application/Handler/`, registered as Scoped in `DependencyInjection.cs`, injected directly into controllers.
-- **Outbox Pattern**: Handlers call `IEventProducer` → `OutboxEventProducer` writes to `OutboxMessages` table. `OutboxProcessor` background service reads and publishes to Kafka. Kafka `IKafkaProducer` is commented out locally (disabled until Kafka profile is active).
-- **Multi-tenancy**: `ITenantContext` resolves `TenantId` and `UserId` from JWT claims. Global query filter on `Shipment` scopes all EF queries to the current tenant (currently commented out during early dev — `Guid.NewGuid()` is used as placeholder).
+- **Outbox Pattern**: Handlers call `IEventProducer` → `OutboxEventProducer` writes to `OutboxMessages` table. `OutboxProcessor` background service reads and publishes to Kafka. `IKafkaProducer` is live (registered as Singleton in `MessagingExtensions`) — the Kafka profile must be up or publishing retries until `OutboxMessage.MaxAttempts` (5), then dead-letters.
+- **Multi-tenancy**: `ITenantContext` resolves `TenantId` and `UserId` from JWT claims (`tenantId` claim + `NameIdentifier`). Global query filter on `Shipment` scopes all EF queries to the current tenant — active in `ShipmentDbContext`. WebhookDispatchService has its own `ITenantContext`/`TenantContext` pair.
 - **DI conventions**: Each layer has its own `DependencyInjection.cs` with an extension method. `Program.cs` is clean — calls `AddApplication()`, `AddInfrastructure()`, `AddApiServices()`, then `UseApiPipelineAsync()`.
 
 ## Tech Stack
@@ -57,7 +59,7 @@ tests/
 | Database | PostgreSQL — native Windows install (NOT Docker) |
 | Messaging | Confluent.Kafka 2.13 (KRaft, no Zookeeper) |
 | Cache | Redis 7 (Alpine, Docker) |
-| Auth | Keycloak 24 (JWT Bearer, `parceltrack` realm, commented out during early dev) |
+| Auth | Keycloak 24 (JWT Bearer, `parceltrack` realm) — active on ShipmentService and WebhookDispatchService |
 | Mapping | Mapster (`MappingConfig.Configure()` called on startup) |
 | API docs | Scalar (`/scalar` endpoint) |
 | Entity config | `IEntityTypeConfiguration<T>`, applied via `ApplyConfigurationsFromAssembly` |
@@ -72,6 +74,9 @@ docker-compose --profile messaging up -d
 
 # Full stack — adds Keycloak
 docker-compose --profile messaging --profile auth up -d
+
+# App services (gateway, shipment-api, notification/tracking/webhook workers)
+docker-compose --profile messaging --profile auth --profile app up -d
 ```
 
 **Required PostgreSQL databases** (create manually in DBeaver or psql):
@@ -126,6 +131,7 @@ Migrations assembly is the Infrastructure project; `ShipmentDbContextFactory` pr
 dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.UnitTests
 dotnet test tests/NotificationService/ParcelTrack.NotificationService.UnitTests
 dotnet test tests/TrackingService/ParcelTrack.TrackingService.UnitTests
+dotnet test tests/WebhookDispatchService/ParcelTrack.WebhookDispatchService.UnitTests
 
 # Integration tests — requires running PostgreSQL with parceltrack_shipment
 dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.IntegrationTests
@@ -149,10 +155,13 @@ dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.IntegrationTests
 - EF column names use snake_case (`UseSnakeCaseNamingConvention`).
 - Entity configs live in `Infrastructure/Persistence/Configurations/` as `IEntityTypeConfiguration<T>`.
 - Each new service follows the same 4-layer structure (Domain / Application / Infrastructure / API or Worker).
-- `Authorize` attribute and `ITenantContext` usage are commented out during early dev; `Guid.NewGuid()` is the placeholder. Re-enable when Keycloak integration is active.
+- `[Authorize]` and `ITenantContext` are active (`ShipmentsController`, `WebhooksController`). Requests need a Keycloak JWT carrying a `tenantId` claim.
+- Startup auto-migration is commented out in `WebApplicationExtensions.UseApiPipelineAsync` for ShipmentService — run `dotnet ef database update` manually. Tracking and Webhook workers still call `MigrateAsync()` on startup.
 - Commit style: Conventional Commits — `feat:`, `fix:`, `chore:`, `refactor:`, `update:`.
-- Never commit secrets — use `appsettings.Development.json` (gitignored) or `.env`.
+- Never commit real secrets. Note: `appsettings.json` and `appsettings.Development.json` **are currently tracked in git** and contain local dev credentials (`Password=admin`) — fine for localhost, must be replaced with env vars/secret store before any deployment.
 
 ## Active Work
 
-Branch: `feature/shipment-service-api` — ShipmentService API layer is the active development surface.
+Branch: `develop` (23 commits ahead of `main`). All five services are feature-complete; remaining work is CI, docs, and hardening — see `PROJECT_TRACKER.md`.
+
+Build requires the **.NET 10 SDK** (10.0.400 installed); the solution file is `ParcelTrack.slnx`. Note: the Bash tool's environment resolves `dotnet` to SDK 8.0.415 and cannot parse `.slnx` — **run `dotnet build`/`dotnet test` through PowerShell**.
