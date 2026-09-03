@@ -20,13 +20,19 @@ Riya sells clothes on Facebook. A customer orders a kurti, pays bKash, Riya ship
 **ParcelTrack solves this:**
 - Riya registers the tracking number when she ships
 - The buyer automatically gets notified when status changes: *"Your parcel is out for delivery"*
-- Riya gets zero "where is my order" messages
+- Riya sees every parcel across every courier in one dashboard, instead of three courier sites
 
-**B2B — The Mid-Size E-Commerce Problem**
+> **Honest limitation.** Couriers already SMS the recipient about their own leg of the journey, so a seller using a *single* courier gets much of this for free. The value here is thin until the seller uses more than one courier, or wants the notification to carry their own brand rather than the courier's. The durable value is in the B2B case below — treat B2C as an on-ramp, not the core market.
 
-Chaldal, Shajgoj, or any growing e-commerce company ships 500–2000 parcels daily across Pathao, Steadfast, and Redx simultaneously. They don't want to log into 3 different courier dashboards. They want **one API** — register a shipment, receive webhook callbacks when status changes, trigger their own customer notifications.
+**B2B — The Multi-Courier Merchant Problem**
 
-ParcelTrack becomes the middleware layer between their platform and all the couriers.
+A mid-size online retailer — fashion, electronics, cosmetics — ships 500-2000 parcels daily and splits them across Pathao, Steadfast, and Redx depending on zone, cost, and who has capacity today. Three couriers means three API integrations to build, three sets of credentials to rotate, three status vocabularies to reconcile, and three dashboards to check. Each one breaks independently.
+
+They want **one API**: register a shipment, receive a webhook when status changes, trigger their own customer notifications.
+
+ParcelTrack becomes the middleware layer between their platform and every courier.
+
+> **Targeting note.** The customer is a merchant who ships through *multiple third-party couriers*. Companies running their own delivery fleet (Chaldal, Daraz in-house) are explicitly **not** the target — they have no aggregation problem to solve. The pitch only lands where courier fragmentation is real.
 
 **The model is B2B2C:** Businesses integrate your API (B2B), their end customers receive notifications (B2C). This mirrors the multi-tenant OTA platform you built at work — same architecture pattern, different domain.
 
@@ -46,6 +52,23 @@ Your Tracking Service calls the courier's API every 30 seconds and checks if sta
 Used for couriers that don't support webhooks, or as a safety net.
 
 The `ICarrierAdapter` interface abstracts which mechanism is used. Whether status arrives via webhook push or polling, the rest of the system doesn't care — it just receives a `CarrierTrackingResult` and processes it identically.
+
+---
+
+### 1.2a "Why Not Just Use the Courier's Own Tracking?"
+
+The obvious objection, and the one to have an answer ready for. Couriers do notify recipients. What they cannot do:
+
+| Gap | Why the courier can't close it |
+|---|---|
+| **One integration instead of N** | Steadfast has no reason to normalize Pathao's API. Somebody has to sit above all of them. |
+| **Normalized status vocabulary** | Each courier names states differently. "Pending" means different things at different couriers. |
+| **Cross-courier analytics** | *Which courier actually has the worst failed-delivery rate in Chittagong?* No single courier dashboard can answer this — it is the argument that survives every objection. |
+| **Merchant-branded notifications** | The courier brands the message as the courier. Merchants want their own name on it. |
+| **Exception detection** | Flagging the parcel stuck four days before the customer complains, across all couriers at once. |
+| **Webhooks where none exist** | Redx has no webhook support at all. The aggregator polls and synthesizes the push. |
+
+**Precedent:** AfterShip built a substantial business on exactly this shape — multi-carrier tracking APIs, branded tracking pages, unified webhooks — alongside EasyPost and Shippo in the shipping-API layer. The category is proven; the opportunity here is that it is underserved for Bangladeshi couriers specifically.
 
 ---
 
@@ -70,7 +93,7 @@ The `ICarrierAdapter` interface abstracts which mechanism is used. Whether statu
 | Model | Who | Example | How They Use ParcelTrack |
 |---|---|---|---|
 | **B2C** | Small seller → end buyer | Riya (Facebook clothes seller) | Dashboard + manual API call, shares tracking link in Messenger |
-| **B2B** | Business → end buyer via API | Chaldal, Shajgoj | Programmatic API integration, receives outbound webhooks |
+| **B2B** | Multi-courier merchant → end buyer via API | Shajgoj, mid-size fashion/electronics retailers on 3PLs | Programmatic API integration, receives outbound webhooks |
 | **C2C** | Individual → individual | Bikroy.com seller shipping a used phone | Identical to B2C — same workflow, same account type |
 
 **C2C is architecturally identical to B2C.** A Bikroy seller registers, ships via Steadfast, calls `POST /shipments`, shares the tracking link with the buyer. No separate architecture needed — just a different account tier in Keycloak. The system handles all three models with the same codebase.
@@ -89,7 +112,7 @@ Individual (B2C / C2C)
   - Auth: JWT (logs into dashboard) + API Key (if they want programmatic access)
 
 Business (B2B)
-  - Chaldal, Shajgoj, any company
+  - Shajgoj, any merchant shipping via multiple third-party couriers
   - Uses: Pure API integration — no dashboard needed
   - Limits: 10,000 shipments/day
   - Auth: API Key only (machine-to-machine, no human login)
@@ -102,7 +125,7 @@ Admin
 
 **What is the API Key and why does it exist?**
 
-When Chaldal's backend calls `POST /shipments` at 2am automatically, there is no human logging in — no browser, no password. The API Key is how your system answers three questions on every request:
+When a merchant's backend calls `POST /shipments` at 2am automatically, there is no human logging in — no browser, no password. The API Key is how your system answers three questions on every request:
 
 1. **Who is calling?** → Identifies the tenant (maps to TenantId)
 2. **Are they allowed?** → Validates the key is active and not revoked

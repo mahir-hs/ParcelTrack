@@ -15,12 +15,19 @@
     </PackageReference>
     <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="Confluent.Kafka" Version="2.13.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ParcelTrack.TrackingService.Application\ParcelTrack.TrackingService.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Carrier contracts and the status mapper are internal — they are implementation
+         detail of the adapter, but they carry the translation logic worth testing directly. -->
+    <InternalsVisibleTo Include="ParcelTrack.TrackingService.UnitTests" />
   </ItemGroup>
 
 </Project>

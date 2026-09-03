@@ -209,6 +209,22 @@ stateDiagram-v2
 | `notification.failed` | 1 | Notification | *(dead letter)* |
 | `webhook.failed` | 1 | Webhook | *(dead letter)* |
 
+### Carrier integrations
+
+Couriers are reached through `ICarrierAdapter`, one implementation per courier. The interface covers both directions status can arrive from — polling (`GetStatusAsync`) and webhook push (`ParseWebhookPayload`) — so the rest of the system never learns which mechanism delivered an update, or which courier it came from.
+
+| Courier | Status | Auth | Webhooks |
+|---|---|---|---|
+| **Pathao** | ✅ Implemented, verified against live sandbox | OAuth2 (token cached, refreshed early, re-auth on 401) | Yes |
+| Steadfast | Planned | API key + secret | Yes |
+| Redx | Planned | API key | No — polling only |
+
+Each courier names its states differently, so adapters translate into ParcelTrack's own `CarrierStatus` vocabulary. Pathao's `Assigned_for_Delivery` and a hypothetical `assigned-for-delivery` both normalise to `OutForDelivery`; an unrecognised status maps to `Unknown` and is logged with the raw value rather than throwing, so a courier inventing a new state can never take the poller down.
+
+Resilience lives in the HttpClient pipeline rather than inside adapters — a 10s per-attempt timeout inside 3 exponential-backoff retries, wrapped in a circuit breaker that opens at a 50% failure ratio and stays open for 30s. No adapter can forget it, and every future courier inherits it.
+
+**Sandbox:** Pathao publishes working sandbox credentials, so this adapter runs without a merchant account. They are in `appsettings.Development.json`; production credentials belong in environment variables.
+
 ---
 
 ## Tech stack
@@ -433,7 +449,7 @@ if (!CryptographicOperations.FixedTimeEquals(
 ## Testing
 
 ```powershell
-# Unit tests — 138 across four projects
+# Unit tests — 196 across four projects
 dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.UnitTests
 dotnet test tests/NotificationService/ParcelTrack.NotificationService.UnitTests
 dotnet test tests/TrackingService/ParcelTrack.TrackingService.UnitTests
@@ -448,7 +464,7 @@ dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.IntegrationTests
 | ShipmentService.UnitTests | 69 | Domain state machine, delivery caps, all 5 handlers |
 | WebhookDispatchService.UnitTests | 35 | Signing, retry/backoff, subscription rules |
 | NotificationService.UnitTests | 17 | Both event handlers, templating |
-| TrackingService.UnitTests | 17 | Record creation, both handlers |
+| TrackingService.UnitTests | 75 | Record creation, handlers, Pathao adapter/token/status mapping |
 | ShipmentService.IntegrationTests | 8 | Full HTTP → DB round trips against real Postgres |
 
 **Integration tests never mock the database.** They run against a real PostgreSQL container — an in-memory provider would not catch the query filters and constraints they exist to verify.
@@ -504,7 +520,9 @@ Dependencies point inward only: `Domain ← Application ← Infrastructure ← A
 
 - [ ] OTLP exporter → Jaeger/Tempo (currently console-only)
 - [ ] Notification history persistence
-- [ ] Carrier adapter integrations (Steadfast, Pathao, Redx APIs)
+- [x] Pathao carrier adapter — OAuth2, normalised status mapping, Polly retry/circuit-breaker/timeout
+- [ ] Carrier polling worker + webhook receive endpoints
+- [ ] Steadfast and Redx adapters (need merchant credentials)
 - [ ] WebSocket/SignalR push for live buyer tracking
 - [ ] Per-tenant rate limit tiers
 - [ ] Kubernetes manifests + registry publishing

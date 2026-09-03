@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ParcelTrack.TrackingService.Application.Interfaces;
+using ParcelTrack.TrackingService.Infrastructure.Extensions;
 using ParcelTrack.TrackingService.Infrastructure.Persistence;
 using ParcelTrack.TrackingService.Infrastructure.Persistence.Repositories;
 
@@ -20,6 +21,8 @@ public static class DependencyInjection
                 .UseSnakeCaseNamingConvention());
 
         services.AddScoped<ITrackingRepository, TrackingRepository>();
+
+        services.AddCarriers(configuration);
 
         services.AddHealthChecks()
             .AddDbContextCheck<TrackingDbContext>("database");
