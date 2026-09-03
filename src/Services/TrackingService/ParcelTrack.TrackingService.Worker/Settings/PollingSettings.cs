@@ -4,8 +4,12 @@ public sealed class PollingSettings
 {
     public const string SectionName = "Polling";
 
-    /// <summary>Set false to run consumer-only — useful when carrier credentials are absent.</summary>
-    public bool Enabled { get; set; } = true;
+    /// <summary>
+    /// Off by default, and deliberately so: polling without carrier credentials fails every
+    /// cycle and trips the circuit breaker for no benefit. Turned on in Development (which has
+    /// sandbox credentials) and in any environment where real credentials are configured.
+    /// </summary>
+    public bool Enabled { get; set; }
 
     /// <summary>
     /// Seconds between cycles. Courier statuses change on the order of hours, so polling
