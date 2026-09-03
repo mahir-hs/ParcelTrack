@@ -35,6 +35,9 @@ public static class PersistenceExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
 
+        services.AddHealthChecks()
+            .AddDbContextCheck<ShipmentDbContext>("database");
+
         return services;
     }
 }

@@ -13,6 +13,7 @@ public static class DependencyInjection
         services.AddPersistence(configuration);
         services.AddMessaging();
         services.AddBackgroundServices();
+        services.AddCaching(configuration);
 
         return services;
     }

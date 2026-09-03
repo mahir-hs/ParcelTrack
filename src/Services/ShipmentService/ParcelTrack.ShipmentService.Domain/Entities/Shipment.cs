@@ -48,6 +48,7 @@ public sealed class Shipment
     {
         var shipment = new Shipment
         {
+            Id = Guid.NewGuid(),
             TrackingNumber = trackingNumber,
             CarrierType = carrierType,
             Status = ShipmentStatus.Created,

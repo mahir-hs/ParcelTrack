@@ -11,7 +11,7 @@ using ParcelTrack.ShipmentService.Domain.Enums;
 namespace ParcelTrack.ShipmentService.API.Controllers;
 
 [ApiController]
-//[Authorize]
+[Authorize]
 [Route("v1/shipments")]
 public class ShipmentsController : ControllerBase
 {
@@ -58,8 +58,10 @@ public class ShipmentsController : ControllerBase
             TrackingNumber = request.TrackingNumber,
             CarrierType = carrierType,
             BuyerEmail = request.BuyerEmail,
-            UserId = /*_tenantContext.UserId*/ Guid.NewGuid(),
-            TenantId = /*_tenantContext.TenantId*/ Guid.NewGuid()
+            DestinationCity = request.DestinationCity,
+            UserId = _tenantContext.UserId,
+            TenantId = _tenantContext.TenantId,
+            IdempotencyKey = Request.Headers.TryGetValue("X-Idempotency-Key", out var key) ? key.ToString() : null
         };
 
         var result = await _createHandler.Handle(command, cancellationToken);
@@ -79,7 +81,7 @@ public class ShipmentsController : ControllerBase
         var query = new GetShipmentByIdQuery
         {
             ShipmentId = id,
-            TenantId = /*_tenantContext.TenantId*/ Guid.NewGuid()
+            TenantId = _tenantContext.TenantId
         };
 
         var result = await _getByIdHandler.Handle(query, cancellationToken);
@@ -136,7 +138,7 @@ public class ShipmentsController : ControllerBase
         var command = new UpdateShipmentStatusCommand
         {
             ShipmentId = id,
-            TenantId = /*_tenantContext.TenantId*/ Guid.NewGuid(),
+            TenantId = _tenantContext.TenantId,
             NewStatus = request.NewStatus,
             Description = request.Description,
             Location = request.Location ?? string.Empty
@@ -163,8 +165,8 @@ public class ShipmentsController : ControllerBase
         var command = new CancelShipmentCommand
         {
             ShipmentId = id,
-            TenantId = /*_tenantContext.TenantId*/ Guid.NewGuid(),
-            RequestingUserId = /*_tenantContext.UserId*/ Guid.NewGuid(),
+            TenantId = _tenantContext.TenantId,
+            RequestingUserId = _tenantContext.UserId,
             Reason = request.Reason
         };
 
@@ -185,7 +187,7 @@ public class ShipmentsController : ControllerBase
         var query = new GetShipmentByIdQuery
         {
             ShipmentId = id,
-            TenantId = /*_tenantContext.TenantId*/ Guid.NewGuid()
+            TenantId = _tenantContext.TenantId
         };
 
         var result = await _getByIdHandler.Handle(query, cancellationToken);

@@ -40,14 +40,13 @@ public class UpdateShipmentStatusCommandHandler(
                 shipment.TrackingNumber,
                 shipment.TenantId,
                 shipment.UserId,
+                shipment.BuyerEmail,
                 previousStatus.ToString(),
                 command.NewStatus.ToString(),
                 command.Location,
                 command.Description,
                 DateTime.UtcNow),
             cancellationToken);
-
-        Console.WriteLine($"Saving Shipment Id: {shipment.Id} | Status: {shipment.Status}");
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

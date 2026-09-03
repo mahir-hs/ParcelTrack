@@ -29,6 +29,10 @@ public sealed class OutboxMessage
         AttemptCount = 0
     };
 
+    public const int MaxAttempts = 5;
+
+    public bool IsDead => AttemptCount >= MaxAttempts && ProcessedAt is null;
+
     public void MarkProcessed() => ProcessedAt = DateTime.UtcNow;
 
     public void RecordFailure(string error)
