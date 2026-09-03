@@ -482,6 +482,8 @@ dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.IntegrationTests
 | TrackingService.UnitTests | 109 | Records, handlers, Pathao adapter/token/status mapping, polling + webhook ingest |
 | ShipmentService.IntegrationTests | 8 | Full HTTP → DB round trips against real Postgres |
 
+**Testing it by hand:** [`docs/MANUAL-TESTING.md`](docs/MANUAL-TESTING.md) walks the full loop end to end — create a shipment, play the courier against the webhook endpoint, and watch the observation travel through Kafka, get validated by the state machine, and come back out as an email. It includes the cases that should *fail*: impossible transitions, repeated statuses, and cross-tenant access.
+
 **Integration tests never mock the database.** They run against a real PostgreSQL container — an in-memory provider would not catch the query filters and constraints they exist to verify.
 
 CI runs the build, all unit suites, the integration suite, and a Docker build of all five images on every push to `main`, `develop`, and `feat/**`.
