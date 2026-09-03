@@ -18,7 +18,9 @@ COPY src/Services/TrackingService/ src/Services/TrackingService/
 RUN dotnet publish src/Services/TrackingService/ParcelTrack.TrackingService.Worker/ParcelTrack.TrackingService.Worker.csproj \
     -c Release -o /app/publish --no-restore
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "ParcelTrack.TrackingService.Worker.dll"]

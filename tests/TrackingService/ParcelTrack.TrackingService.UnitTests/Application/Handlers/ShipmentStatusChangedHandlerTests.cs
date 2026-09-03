@@ -11,6 +11,7 @@ namespace ParcelTrack.TrackingService.UnitTests.Application.Handlers;
 public sealed class ShipmentStatusChangedHandlerTests
 {
     private readonly Mock<ITrackingRepository> _repoMock;
+    private readonly Mock<ITrackedShipmentRepository> _trackedMock;
     private readonly ShipmentStatusChangedHandler _handler;
 
     public ShipmentStatusChangedHandlerTests()
@@ -20,8 +21,11 @@ public sealed class ShipmentStatusChangedHandlerTests
             .Setup(r => r.AddAsync(It.IsAny<TrackingRecord>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        _trackedMock = new Mock<ITrackedShipmentRepository>();
+
         _handler = new ShipmentStatusChangedHandler(
             _repoMock.Object,
+            _trackedMock.Object,
             Mock.Of<ILogger<ShipmentStatusChangedHandler>>());
     }
 

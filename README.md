@@ -58,12 +58,13 @@ flowchart TB
     KAFKA{{"<b>Kafka</b> (KRaft)<br/>shipment.created<br/>shipment.status.changed"}}
 
     subgraph Read["Read path — asynchronous consumers"]
-        TRK["<b>TrackingService</b><br/>immutable event log"]
+        TRK["<b>TrackingService</b><br/>event log · carrier polling<br/>webhook receiver :5072"]
         NOT["<b>NotificationService</b><br/>buyer email · SMTP"]
         WHK["<b>WebhookDispatchService</b><br/>HMAC-signed callbacks<br/>+ subscription API :5070"]
     end
 
-    PG2[("parceltrack_tracking")]
+    PG2[("parceltrack_tracking<br/><i>events · tracked parcels</i>")]
+    COURIER["<b>Pathao</b><br/><i>courier API</i>"]
     PG3[("parceltrack_webhook")]
     SMTP["Buyer inbox"]
     TENANT["Tenant endpoint"]
@@ -82,6 +83,8 @@ flowchart TB
     KAFKA --> NOT
     KAFKA --> WHK
     TRK --> PG2
+    TRK <-->|"poll every 30s<br/>+ webhook push"| COURIER
+    TRK -.->|"publishes observed<br/>status changes"| KAFKA
     WHK --> PG3
     NOT --> SMTP
     WHK --> TENANT
@@ -90,6 +93,7 @@ flowchart TB
     style KAFKA fill:#7c3aed,color:#fff
     style OUTBOX fill:#059669,color:#fff
     style GW fill:#0891b2,color:#fff
+    style COURIER fill:#ea580c,color:#fff
 ```
 
 **The key idea:** the API never talks to Kafka. Handlers call `IEventProducer`, which writes a row to `outbox_messages` inside the same transaction as the business change. A background processor drains that table into Kafka. If the broker is unreachable, rows accumulate and retry — up to 5 attempts, after which they dead-letter rather than spin forever.
@@ -196,7 +200,7 @@ stateDiagram-v2
 |---|---|---|---|
 | **Gateway** | ASP.NET Core (YARP) | 8080 | Single entry point, routing, fixed-window rate limiting (100 req/min → 429) |
 | **ShipmentService** | Web API | 5068 | Shipment lifecycle, domain rules, outbox writes, public tracking lookup |
-| **TrackingService** | Worker | — | Consumes both topics, appends to an immutable tracking log |
+| **TrackingService** | Worker + API | 5072 | Consumes both topics, appends to an immutable tracking log, **polls couriers for status**, receives courier webhook pushes |
 | **NotificationService** | Worker | — | Consumes status changes, emails the buyer via SMTP (MailKit) |
 | **WebhookDispatchService** | Worker + API | 5070 | Consumes status changes, delivers HMAC-signed webhooks; also serves subscription CRUD |
 
@@ -215,7 +219,7 @@ Couriers are reached through `ICarrierAdapter`, one implementation per courier. 
 
 | Courier | Status | Auth | Webhooks |
 |---|---|---|---|
-| **Pathao** | ✅ Implemented, verified against live sandbox | OAuth2 (token cached, refreshed early, re-auth on 401) | Yes |
+| **Pathao** | ✅ Implemented, verified against live sandbox | OAuth2 (token cached, refreshed early, re-auth on 401) | Yes — `POST /webhooks/pathao` |
 | Steadfast | Planned | API key + secret | Yes |
 | Redx | Planned | API key | No — polling only |
 
@@ -223,7 +227,16 @@ Each courier names its states differently, so adapters translate into ParcelTrac
 
 Resilience lives in the HttpClient pipeline rather than inside adapters — a 10s per-attempt timeout inside 3 exponential-backoff retries, wrapped in a circuit breaker that opens at a 50% failure ratio and stays open for 30s. No adapter can forget it, and every future courier inherits it.
 
-**Sandbox:** Pathao publishes working sandbox credentials, so this adapter runs without a merchant account. They are in `appsettings.Development.json`; production credentials belong in environment variables.
+**How status actually arrives.** Two routes, one code path:
+
+- **Polling** — `CarrierPollingWorker` runs every 30s, takes up to 50 active parcels per carrier oldest-polled-first, and asks the courier. Fair ordering means that with more parcels than one cycle covers, every parcel still gets its turn.
+- **Webhook push** — couriers `POST /webhooks/{carrier}` the moment a parcel moves, guarded by a shared secret compared in constant time.
+
+Both feed `CarrierObservationApplier`, so change detection lives in exactly one place. That is what makes running both safe: whichever route sees a change first publishes `shipment.status.changed`, and the other finds nothing new to report. Polling stays on as the safety net — pushes get lost, and Redx cannot push at all.
+
+Only *changes* are published. A courier answers with the same status on nearly every cycle; without that guard the buyer would be emailed every 30 seconds.
+
+**Sandbox:** Pathao publishes working sandbox credentials, so this adapter runs without a merchant account. They are in `appsettings.Development.json`; production credentials belong in environment variables. Polling is off by default in the containerised stack (`POLLING_ENABLED`) — it stays off until credentials exist.
 
 ---
 
@@ -449,7 +462,7 @@ if (!CryptographicOperations.FixedTimeEquals(
 ## Testing
 
 ```powershell
-# Unit tests — 196 across four projects
+# Unit tests — 230 across four projects
 dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.UnitTests
 dotnet test tests/NotificationService/ParcelTrack.NotificationService.UnitTests
 dotnet test tests/TrackingService/ParcelTrack.TrackingService.UnitTests
@@ -464,7 +477,7 @@ dotnet test tests/ShipmentService/ParcelTrack.ShipmentService.IntegrationTests
 | ShipmentService.UnitTests | 69 | Domain state machine, delivery caps, all 5 handlers |
 | WebhookDispatchService.UnitTests | 35 | Signing, retry/backoff, subscription rules |
 | NotificationService.UnitTests | 17 | Both event handlers, templating |
-| TrackingService.UnitTests | 75 | Record creation, handlers, Pathao adapter/token/status mapping |
+| TrackingService.UnitTests | 109 | Records, handlers, Pathao adapter/token/status mapping, polling + webhook ingest |
 | ShipmentService.IntegrationTests | 8 | Full HTTP → DB round trips against real Postgres |
 
 **Integration tests never mock the database.** They run against a real PostgreSQL container — an in-memory provider would not catch the query filters and constraints they exist to verify.
@@ -516,12 +529,21 @@ Dependencies point inward only: `Domain ← Application ← Infrastructure ← A
 
 ---
 
+## Known gap
+
+The polling worker publishes `shipment.status.changed` when a courier reports movement, which drives notifications, webhooks, and the tracking log. **It does not yet update the shipment row in ShipmentService.** A parcel Pathao has marked delivered will show as delivered in `GET /v1/track/{n}` and trigger the buyer's email, while `GET /v1/shipments/{id}` still shows the older status.
+
+Closing it properly means ShipmentService consuming carrier observations and applying them through its own state machine — which needs `ITenantContext` to work outside an HTTP request, since it currently resolves the tenant from JWT claims. That refactor is deliberately not bundled into this change.
+
+---
+
 ## Roadmap
 
 - [ ] OTLP exporter → Jaeger/Tempo (currently console-only)
 - [ ] Notification history persistence
 - [x] Pathao carrier adapter — OAuth2, normalised status mapping, Polly retry/circuit-breaker/timeout
-- [ ] Carrier polling worker + webhook receive endpoints
+- [x] Carrier polling worker + webhook receive endpoints
+- [ ] Propagate courier observations back to ShipmentService (see below)
 - [ ] Steadfast and Redx adapters (need merchant credentials)
 - [ ] WebSocket/SignalR push for live buyer tracking
 - [ ] Per-tenant rate limit tiers

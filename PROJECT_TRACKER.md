@@ -61,7 +61,8 @@ All three route groups are proxied through the YARP gateway (`shipment-cluster`,
 | Webhook HMAC signing + retry | ✅ Done |
 | Carrier integration — Pathao | ✅ Adapter done (OAuth2, status mapping, Polly retry/breaker/timeout), verified against live sandbox |
 | Carrier integration — Steadfast, Redx | ❌ Not started — need merchant credentials |
-| Carrier polling worker | ❌ Not started — adapter exists but nothing calls it on a schedule |
+| Carrier polling worker | ✅ Done — 30s cycle, 50/carrier, fair oldest-polled-first ordering, publishes only on change |
+| Carrier webhook receive endpoints | ✅ Done — `POST /webhooks/pathao`, constant-time shared-secret check |
 | EF Core migrations | ✅ Shipment, Tracking, Webhook all have initial migrations |
 | Dockerfiles + compose `app` profile | ✅ Done (5 images) |
 
@@ -74,10 +75,10 @@ All three route groups are proxied through the YARP gateway (`shipment-cluster`,
 | ShipmentService.UnitTests | 69 | ✅ Domain + all 5 handlers |
 | ShipmentService.IntegrationTests | 8 | ✅ Testcontainers + real Postgres, not in CI |
 | NotificationService.UnitTests | 17 | ✅ Both handlers |
-| TrackingService.UnitTests | 75 | ✅ Domain, handlers, Pathao adapter + token provider + status mapper |
+| TrackingService.UnitTests | 109 | ✅ Domain, handlers, Pathao adapter + token provider + status mapper |
 | WebhookDispatchService.UnitTests | 35 | ✅ Domain + dispatch handler |
 
-**Verified 2026-09-04: solution builds clean (0 errors) on SDK 10.0.400; all 196 unit tests pass.** Integration tests not run (need Docker for Testcontainers).
+**Verified 2026-09-04: solution builds clean (0 errors) on SDK 10.0.400; all 230 unit tests pass.** Integration tests not run (need Docker for Testcontainers).
 
 ---
 
@@ -98,7 +99,7 @@ All three route groups are proxied through the YARP gateway (`shipment-cluster`,
 - [ ] **Integration tests in CI** — Testcontainers suite is never run automatically.
 - [ ] **Prune stale branches** — 12 remote feature branches, most fully merged into `develop`.
 - [ ] **Package warnings** — 2 × NU1903 (above) and 2 × NU1510 (redundant `Microsoft.Extensions.Hosting` / `Microsoft.Extensions.Http` refs in WebhookDispatchService).
-- [ ] **Carrier polling worker** — the Pathao adapter is wired into DI but no scheduled job invokes it. Needs: active-shipment list, Redis last-known-status cache, change detection, publish `shipment.status.changed` to Kafka (plan §3.4).
-- [ ] **Carrier webhook endpoints** — `ParseWebhookPayload` is implemented and tested; no HTTP endpoint receives Pathao pushes yet.
+- [ ] **Propagate courier observations to ShipmentService** — the poller publishes `shipment.status.changed`, so notifications, webhooks and the tracking log all react, but the authoritative `shipments` row is never updated. `GET /v1/shipments/{id}` can therefore lag `GET /v1/track/{n}`. Fix needs ShipmentService to consume the event and apply it through its state machine, which in turn needs `ITenantContext` to resolve outside an HTTP request.
+- [ ] **Last-known-status cache** — plan §3.4 wanted Redis; implemented as a `tracked_shipments` column instead. One indexed row per parcel is a single source of truth and avoids a second store to keep in sync. Revisit only if poll volume makes the DB read hurt.
 - [ ] **OTel exporter** — console only; wire OTLP → Jaeger/Tempo for real tracing.
 - [ ] **NotificationService has no persistence/migration** even though `parceltrack_notification` DB is documented — confirm intentional (currently log/SMTP only, no notification history).
